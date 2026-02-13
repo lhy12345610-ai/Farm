@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>우리 농장 관리 시스템</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
+        h1 { font-size: 1.4rem; text-align: center; color: #333; }
+        .farm-container { display: flex; flex-direction: column; gap: 20px; }
+        .building { background: white; border-radius: 15px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .building-title { font-size: 1rem; font-weight: bold; margin-bottom: 12px; color: #444; border-left: 5px solid #ffafbd; padding-left: 10px; }
+
+        /* 공통 그리드 설정 (일렬 배치를 위해 auto-fill 사용) */
+        .grid-single { 
+            display: grid; 
+            gap: 8px; 
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); 
+        }
+
+        /* 비육사 1, 2동 전용 (좌우 2열 고정) */
+        .grid-lr { 
+            display: grid; 
+            gap: 8px; 
+            grid-template-columns: repeat(2, 1fr); 
+        }
+
+        .cell { 
+            aspect-ratio: 1 / 1; background: #fff; border: 1.5px solid #eee; border-radius: 10px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; -webkit-tap-highlight-color: transparent;
+        }
+        .cell span { font-size: 0.7rem; color: #999; margin-bottom: 4px; }
+        .count { font-size: 1.2rem; font-weight: bold; }
+
+        /* 상태별 색상 */
+        .empty { background-color: #ffffff; color: #ccc; }
+        .active { background-color: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
+        .full { background-color: #ffebee; color: #c62828; border-color: #ef9a9a; }
+    </style>
+</head>
+<body>
+
+<h1>🐷 농장 실시간 현황판</h1>
+
+<div class="farm-container">
+    <div class="building">
+        <div class="building-title">자돈사 (20칸 일렬)</div>
+        <div id="nursery" class="grid-single"></div>
+    </div>
+
+    <div class="building">
+        <div class="building-title">비육 1동 (좌우 12칸)</div>
+        <div id="f1" class="grid-lr"></div>
+    </div>
+
+    <div class="building">
+        <div class="building-title">비육 2동 (좌우 22칸)</div>
+        <div id="f2" class="grid-lr"></div>
+    </div>
+
+    <div class="building">
+        <div class="building-title">비육 3동 (21칸 일렬)</div>
+        <div id="f3" class="grid-single"></div>
+    </div>
+</div>
+
+<script>
+    function createCell(id, label, containerId) {
+        const container = document.getElementById(containerId);
+        const div = document.createElement('div');
+        div.className = 'cell empty';
+        
+        // 브라우저 저장소에서 데이터 불러오기
+        const savedValue = localStorage.getItem(id) || 0;
+        
+        div.innerHTML = `<span>${label}</span><div class="count">${savedValue}</div>`;
+        updateStyle(div, savedValue);
+
+        div.onclick = function() {
+            const current = div.querySelector('.count').innerText;
+            const count = prompt(`${label} 두수를 입력하세요:`, current);
+            if (count !== null) {
+                div.querySelector('.count').innerText = count;
+                localStorage.setItem(id, count); // 데이터 저장
+                updateStyle(div, count);
+            }
+        };
+        container.appendChild(div);
+    }
+
+    function updateStyle(el, count) {
+        el.classList.remove('active', 'full', 'empty');
+        if (count == 0) el.classList.add('empty');
+        else if (count > 25) el.classList.add('full');
+        else el.classList.add('active');
+    }
+
+    // 1. 자돈사 20칸 생성
+    for(let i=1; i<=20; i++) createCell(`nursery_${i}`, `${i}번`, 'nursery');
+    // 2. 비육 1동 12칸 생성
+    for(let i=1; i<=12; i++) createCell(`f1_${i}`, `${i%2==1?'좌':'우'}${Math.ceil(i/2)}`, 'f1');
+    // 3. 비육 2동 22칸 생성
+    for(let i=1; i<=22; i++) createCell(`f2_${i}`, `${i%2==1?'좌':'우'}${Math.ceil(i/2)}`, 'f2');
+    // 4. 비육 3동 21칸 생성
+    for(let i=1; i<=21; i++) createCell(`f3_${i}`, `${i}번`, 'f3');
+</script>
+
+</body>
+</html>
