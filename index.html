@@ -3,108 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>우리 농장 관리 시스템</title>
+    <title>우리 농장 통합 관리</title>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
-        h1 { font-size: 1.4rem; text-align: center; color: #333; }
-        .farm-container { display: flex; flex-direction: column; gap: 20px; }
-        .building { background: white; border-radius: 15px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .building-title { font-size: 1rem; font-weight: bold; margin-bottom: 12px; color: #444; border-left: 5px solid #ffafbd; padding-left: 10px; }
+        :root { --main-pink: #ffafbd; --bg: #f8f9fa; --building-bg: #ffffff; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; }
+        h1 { font-size: 1.2rem; text-align: center; color: #333; margin-bottom: 20px; }
 
-        /* 공통 그리드 설정 (일렬 배치를 위해 auto-fill 사용) */
-        .grid-single { 
-            display: grid; 
-            gap: 8px; 
-            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); 
+        /* 조감도 레이아웃 */
+        .farm-map { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 20px; }
+        .map-building { 
+            background: var(--building-bg); border: 2px solid #ddd; border-radius: 10px; padding: 10px;
+            text-align: center; cursor: pointer; min-height: 80px; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .map-building:active { background: var(--main-pink); color: white; }
+        .map-building b { font-size: 0.85rem; display: block; }
+        .map-building span { font-size: 0.7rem; color: #666; margin-top: 5px; }
+
+        /* 상세 화면 (모달 방식) */
+        #detail-view { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: white; z-index: 100; overflow-y: auto; padding: 20px 10px; box-sizing: border-box;
+        }
+        .close-btn { 
+            display: block; width: 100%; padding: 15px; background: #333; color: white; 
+            border: none; border-radius: 8px; margin-bottom: 20px; font-size: 1rem;
         }
 
-        /* 비육사 1, 2동 전용 (좌우 2열 고정) */
-        .grid-lr { 
-            display: grid; 
-            gap: 8px; 
-            grid-template-columns: repeat(2, 1fr); 
-        }
-
+        /* 돈방 그리드 설정 */
+        .grid-container { display: grid; gap: 8px; }
+        .room-title { background: #eee; padding: 5px; font-size: 0.8rem; font-weight: bold; margin-top: 10px; grid-column: 1 / -1; }
         .cell { 
-            aspect-ratio: 1 / 1; background: #fff; border: 1.5px solid #eee; border-radius: 10px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            cursor: pointer; -webkit-tap-highlight-color: transparent;
+            aspect-ratio: 1/1; border: 1.5px solid #eee; border-radius: 8px; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff;
         }
-        .cell span { font-size: 0.7rem; color: #999; margin-bottom: 4px; }
-        .count { font-size: 1.2rem; font-weight: bold; }
-
-        /* 상태별 색상 */
-        .empty { background-color: #ffffff; color: #ccc; }
-        .active { background-color: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
-        .full { background-color: #ffebee; color: #c62828; border-color: #ef9a9a; }
+        .cell span { font-size: 0.6rem; color: #999; }
+        .cell b { font-size: 1.1rem; }
+        
+        /* 상태 색상 */
+        .active { background: #e8f5e9; border-color: #a5d6a7; color: #2e7d32; }
+        .full { background: #ffebee; border-color: #ef9a9a; color: #c62828; }
     </style>
 </head>
 <body>
 
-<h1>🐷 농장 실시간 현황판</h1>
+<h1>🐷 농장 전체 조감도</h1>
 
-<div class="farm-container">
-    <div class="building">
-        <div class="building-title">자돈사 (20칸 일렬)</div>
-        <div id="nursery" class="grid-single"></div>
-    </div>
+<div class="farm-map">
+    <div class="map-building" onclick="openBuilding('farrow1')"><b>분만 1</b><span>8칸</span></div>
+    <div class="map-building" onclick="openBuilding('farrow2')"><b>분만 2,3</b><span>12칸</span></div>
+    <div class="map-building" onclick="openBuilding('nursery')"><b>자돈사</b><span>5방/20칸</span></div>
+    <div class="map-building" onclick="openBuilding('grower')"><b>육성사</b><span>6방/36칸</span></div>
+    <div class="map-building" onclick="openBuilding('gilt')"><b>후보사</b><span>관리</span></div>
+    <div class="map-building" onclick="openBuilding('mating')"><b>종부사</b><span>관리</span></div>
+</div>
 
-    <div class="building">
-        <div class="building-title">비육 1동 (좌우 12칸)</div>
-        <div id="f1" class="grid-lr"></div>
-    </div>
+<div class="farm-map" style="grid-template-columns: repeat(5, 1fr);">
+    <div class="map-building" onclick="openBuilding('finisher1')"><b>비육 1</b><span>12칸</span></div>
+    <div class="map-building" onclick="openBuilding('finisher2')"><b>비육 2</b><span>22칸</span></div>
+    <div class="map-building" onclick="openBuilding('finisher3')"><b>비육 3</b><span>21칸</span></div>
+    <div class="map-building" onclick="openBuilding('gestation4')"><b>임신 4</b><span>관리</span></div>
+    <div class="map-building" onclick="openBuilding('gestation5')) "><b>임신 5</b><span>관리</span></div>
+</div>
 
-    <div class="building">
-        <div class="building-title">비육 2동 (좌우 22칸)</div>
-        <div id="f2" class="grid-lr"></div>
-    </div>
-
-    <div class="building">
-        <div class="building-title">비육 3동 (21칸 일렬)</div>
-        <div id="f3" class="grid-single"></div>
-    </div>
+<div id="detail-view">
+    <button class="close-btn" onclick="closeBuilding()">← 전체 지도로 돌아가기</button>
+    <h2 id="detail-title" style="text-align:center;"></h2>
+    <div id="detail-grid" class="grid-container"></div>
 </div>
 
 <script>
-    function createCell(id, label, containerId) {
-        const container = document.getElementById(containerId);
-        const div = document.createElement('div');
-        div.className = 'cell empty';
-        
-        // 브라우저 저장소에서 데이터 불러오기
-        const savedValue = localStorage.getItem(id) || 0;
-        
-        div.innerHTML = `<span>${label}</span><div class="count">${savedValue}</div>`;
-        updateStyle(div, savedValue);
+    const buildings = {
+        'farrow1': { title: '분만사 1동', layout: 'single', count: 8 },
+        'farrow2': { title: '분만사 2,3동', layout: 'single', count: 12 },
+        'nursery': { title: '자돈사', layout: 'room', rooms: 5, perRoom: 4 },
+        'grower': { title: '육성사', layout: 'room', rooms: 6, perRoom: 6 },
+        'finisher1': { title: '비육사 1동', layout: 'lr', count: 12 },
+        'finisher2': { title: '비육사 2동', layout: 'lr', count: 22 },
+        'finisher3': { title: '비육사 3동', layout: 'single', count: 21 },
+        'gilt': { title: '후보사', layout: 'single', count: 10 },
+        'mating': { title: '종부사', layout: 'single', count: 10 },
+        'gestation4': { title: '임신사 4동', layout: 'single', count: 20 },
+        'gestation5': { title: '임신사 5동', layout: 'single', count: 20 }
+    };
 
-        div.onclick = function() {
-            const current = div.querySelector('.count').innerText;
-            const count = prompt(`${label} 두수를 입력하세요:`, current);
-            if (count !== null) {
-                div.querySelector('.count').innerText = count;
-                localStorage.setItem(id, count); // 데이터 저장
-                updateStyle(div, count);
+    function openBuilding(id) {
+        const b = buildings[id];
+        const grid = document.getElementById('detail-grid');
+        document.getElementById('detail-title').innerText = b.title;
+        grid.innerHTML = '';
+        grid.style.gridTemplateColumns = b.layout === 'lr' ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(70px, 1fr))';
+
+        if (b.layout === 'room') {
+            for (let r = 1; r <= b.rooms; r++) {
+                const title = document.createElement('div');
+                title.className = 'room-title';
+                title.innerText = `${r}번 방`;
+                grid.appendChild(title);
+                for (let c = 1; c <= b.perRoom; c++) createCell(grid, `${id}_${r}_${c}`, `${c}번`);
+            }
+        } else {
+            for (let i = 1; i <= b.count; i++) {
+                let label = b.layout === 'lr' ? (i%2==1?'좌':'우')+Math.ceil(i/2) : i+'번';
+                createCell(grid, `${id}_${i}`, label);
+            }
+        }
+        document.getElementById('detail-view').style.display = 'block';
+    }
+
+    function createCell(parent, saveKey, label) {
+        const val = localStorage.getItem(saveKey) || 0;
+        const div = document.createElement('div');
+        div.className = 'cell ' + (val == 0 ? '' : (val > 25 ? 'full' : 'active'));
+        div.innerHTML = `<span>${label}</span><b>${val}</b>`;
+        div.onclick = () => {
+            const n = prompt(`${label} 두수:`, val);
+            if (n !== null) {
+                localStorage.setItem(saveKey, n);
+                openBuilding(saveKey.split('_')[0]); // 새로고침 효과
             }
         };
-        container.appendChild(div);
+        parent.appendChild(div);
     }
 
-    function updateStyle(el, count) {
-        el.classList.remove('active', 'full', 'empty');
-        if (count == 0) el.classList.add('empty');
-        else if (count > 25) el.classList.add('full');
-        else el.classList.add('active');
-    }
-
-    // 1. 자돈사 20칸 생성
-    for(let i=1; i<=20; i++) createCell(`nursery_${i}`, `${i}번`, 'nursery');
-    // 2. 비육 1동 12칸 생성
-    for(let i=1; i<=12; i++) createCell(`f1_${i}`, `${i%2==1?'좌':'우'}${Math.ceil(i/2)}`, 'f1');
-    // 3. 비육 2동 22칸 생성
-    for(let i=1; i<=22; i++) createCell(`f2_${i}`, `${i%2==1?'좌':'우'}${Math.ceil(i/2)}`, 'f2');
-    // 4. 비육 3동 21칸 생성
-    for(let i=1; i<=21; i++) createCell(`f3_${i}`, `${i}번`, 'f3');
+    function closeBuilding() { document.getElementById('detail-view').style.display = 'none'; }
 </script>
-
 </body>
 </html>
