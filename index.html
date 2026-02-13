@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>스마트 농장 관리 PRO</title>
+    <title>스마트 농장 관리 PRO (백신알림)</title>
     <style>
-        :root { --main-pink: #ffafbd; --bg: #f8f9fa; --building-bg: #ffffff; --green: #2e7d32; --red: #c62828; }
+        :root { --main-pink: #ffafbd; --bg: #f8f9fa; --building-bg: #ffffff; --green: #2e7d32; --red: #c62828; --vaccine: #ff9800; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 80px; }
         h1 { font-size: 1.2rem; text-align: center; color: #333; margin-bottom: 20px; }
 
-        /* 조감도 레이아웃 */
         .farm-map { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
         .map-building { 
             background: var(--building-bg); border: 2px solid #ddd; border-radius: 12px; padding: 12px;
@@ -19,63 +18,61 @@
         .map-building b { font-size: 0.9rem; margin-bottom: 4px; }
         .map-building span { font-size: 0.75rem; color: var(--green); font-weight: bold; }
 
-        /* 상세 화면 */
-        #detail-view { 
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: white; z-index: 100; overflow-y: auto; padding: 20px 10px; box-sizing: border-box;
-        }
+        #detail-view { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 100; overflow-y: auto; padding: 20px 10px; box-sizing: border-box; }
         .nav-bar { display: flex; gap: 10px; margin-bottom: 15px; }
         .close-btn { flex: 1; padding: 12px; background: #333; color: white; border: none; border-radius: 8px; font-size: 0.9rem; }
 
-        /* 돈방 그리드 */
-        .grid-container { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); }
+        .grid-container { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); }
         .room-title { background: #f0f0f0; padding: 8px; font-size: 0.85rem; font-weight: bold; margin-top: 10px; border-radius: 5px; grid-column: 1 / -1; }
-        .cell { 
-            aspect-ratio: 1/1; border: 1.5px solid #eee; border-radius: 10px; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff;
-        }
-        .cell span { font-size: 0.65rem; color: #888; margin-bottom: 2px; }
-        .cell b { font-size: 1.2rem; }
         
-        /* 마우스 액션 레이어 (팝업) */
-        #action-modal { 
-            display: none; position: fixed; bottom: 0; left: 0; width: 100%; 
-            background: white; border-radius: 20px 20px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.2); 
-            z-index: 200; padding: 20px; box-sizing: border-box;
+        .cell { 
+            aspect-ratio: 1/1.1; border: 1.5px solid #eee; border-radius: 10px; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff;
+            position: relative;
         }
+        .cell span { font-size: 0.65rem; color: #888; }
+        .cell b { font-size: 1.1rem; }
+        .cell .date-info { font-size: 0.55rem; color: #555; text-align: center; margin-top: 2px; }
+        
+        /* 백신 알림 뱃지 */
+        .vaccine-alert::after {
+            content: "💉백신"; position: absolute; top: -5px; right: -5px;
+            background: var(--vaccine); color: white; font-size: 0.6rem; padding: 2px 4px; border-radius: 4px; font-weight: bold;
+        }
+
+        #action-modal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: white; border-radius: 20px 20px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.2); z-index: 200; padding: 20px; box-sizing: border-box; }
         .btn-group { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
-        .btn { padding: 15px; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; color: white; }
+        .btn { padding: 12px; border: none; border-radius: 10px; font-weight: bold; font-size: 0.9rem; color: white; }
         .btn-in { background: var(--green); }
         .btn-out { background: var(--red); }
-        .btn-move { background: #1976d2; grid-column: span 2; }
+        .btn-date { background: #673ab7; grid-column: span 2; }
 
-        /* 상태 색상 */
         .active { background: #e8f5e9; border-color: #a5d6a7; color: #2e7d32; }
         .full { background: #ffebee; border-color: #ef9a9a; color: #c62828; }
+        .needs-vaccine { border: 2px solid var(--vaccine) !important; background: #fff3e0; }
     </style>
 </head>
 <body>
 
-<h1>🐷 농장 실시간 조감도</h1>
+<h1>🐷 농장 통합 관리 (백신/일정)</h1>
 
 <div class="farm-map" id="top-line"></div>
 <div class="farm-map" id="bottom-line" style="grid-template-columns: repeat(2, 1fr);"></div>
 
 <div id="detail-view">
-    <div class="nav-bar">
-        <button class="close-btn" onclick="closeBuilding()">← 지도로 돌아가기</button>
-    </div>
+    <div class="nav-bar"><button class="close-btn" onclick="closeBuilding()">← 지도로 돌아가기</button></div>
     <h2 id="detail-title" style="text-align:center; margin:10px 0;"></h2>
     <div id="detail-grid" class="grid-container"></div>
 </div>
 
 <div id="action-modal">
-    <h3 id="modal-title" style="margin:0 0 10px 0;">칸 관리</h3>
-    <div style="font-size: 0.9rem; color: #666;">현재 마릿수: <b id="modal-count">0</b></div>
+    <h3 id="modal-title" style="margin:0;">칸 관리</h3>
+    <div id="modal-sub-info" style="font-size: 0.8rem; margin-bottom: 10px; color: #666;"></div>
     <div class="btn-group">
-        <button class="btn btn-in" onclick="adjustCount(1)">+ 1마리 입식</button>
-        <button class="btn btn-out" onclick="adjustCount(-1)">- 1마리 사고/폐사</button>
-        <button class="btn btn-move" onclick="manualEdit()">직접 마릿수 수정</button>
+        <button class="btn btn-in" onclick="adjustCount(1)">+1 입식</button>
+        <button class="btn btn-out" onclick="adjustCount(-1)">-1 사고/폐사</button>
+        <button class="btn btn-date" id="date-btn" onclick="setInDate()">입식 날짜 설정</button>
+        <button class="btn" style="background:#1976d2; grid-column: span 2;" onclick="manualEdit()">직접 수정</button>
         <button class="btn" style="background:#888; grid-column: span 2;" onclick="closeModal()">닫기</button>
     </div>
 </div>
@@ -84,7 +81,7 @@
     const buildings = {
         'farrow1': { title: '분만 1동', count: 8, line: 'top' },
         'farrow2': { title: '분만 2,3동', count: 12, line: 'top' },
-        'nursery': { title: '자돈사', rooms: 5, perRoom: 4, line: 'top', layout: 'room' },
+        'nursery': { title: '자돈사', rooms: 5, perRoom: 4, line: 'top', layout: 'room', alertVaccine: true },
         'grower': { title: '육성사', rooms: 6, perRoom: 6, line: 'top', layout: 'room' },
         'gilt': { title: '후보사', count: 10, line: 'top' },
         'mating': { title: '종부사', count: 10, line: 'top' },
@@ -96,25 +93,24 @@
     };
 
     let currentSelectedKey = '';
+    const today = new Date();
 
     function initMap() {
         const top = document.getElementById('top-line');
         const bottom = document.getElementById('bottom-line');
         top.innerHTML = ''; bottom.innerHTML = '';
-
         for (let id in buildings) {
             const b = buildings[id];
             const div = document.createElement('div');
             div.className = 'map-building';
             div.onclick = () => openBuilding(id);
-            
             let total = 0;
             for (let i = 0; i < localStorage.length; i++) {
-                if (localStorage.key(i).startsWith(id)) {
-                    total += parseInt(localStorage.getItem(localStorage.key(i))) || 0;
+                const key = localStorage.key(i);
+                if (key.startsWith(id) && !key.includes('_date')) {
+                    total += parseInt(localStorage.getItem(key)) || 0;
                 }
             }
-
             div.innerHTML = `<b>${b.title}</b><span>${total}두</span>`;
             (b.line === 'top' ? top : bottom).appendChild(div);
         }
@@ -125,13 +121,13 @@
         const grid = document.getElementById('detail-grid');
         document.getElementById('detail-title').innerText = b.title;
         grid.innerHTML = '';
-        grid.style.gridTemplateColumns = b.layout === 'lr' ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(80px, 1fr))';
+        grid.style.gridTemplateColumns = b.layout === 'lr' ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(85px, 1fr))';
 
         if (b.layout === 'room') {
             for (let r = 1; r <= b.rooms; r++) {
                 const rt = document.createElement('div'); rt.className = 'room-title'; rt.innerText = `${r}번 방`;
                 grid.appendChild(rt);
-                for (let c = 1; c <= b.perRoom; c++) createCell(grid, `${id}_${r}_${c}`, `${c}번`);
+                for (let c = 1; c <= b.perRoom; c++) createCell(grid, `${id}_${r}_${c}`, `${c}번`, b.alertVaccine);
             }
         } else {
             for (let i = 1; i <= b.count; i++) {
@@ -142,44 +138,66 @@
         document.getElementById('detail-view').style.display = 'block';
     }
 
-    function createCell(parent, key, label) {
+    function createCell(parent, key, label, vaccineCheck) {
         const val = parseInt(localStorage.getItem(key)) || 0;
+        const inDateStr = localStorage.getItem(key + '_date');
         const div = document.createElement('div');
         div.className = 'cell ' + (val == 0 ? '' : (val > 25 ? 'full' : 'active'));
-        div.innerHTML = `<span>${label}</span><b>${val}</b>`;
-        div.onclick = () => openModal(key, label, val);
+        
+        let dateHtml = '';
+        if (inDateStr) {
+            const inDate = new Date(inDateStr);
+            const moveDate = new Date(inDate); moveDate.setDate(inDate.getDate() + 33);
+            const vaccineDate = new Date(inDate); vaccineDate.setDate(inDate.getDate() + 23); // 33일 전 10일 = 23일 후
+            
+            dateHtml = `<div class="date-info">이동:${moveDate.getMonth()+1}/${moveDate.getDate()}</div>`;
+            
+            // 오늘이 백신 예정일 전후 2일 사이면 알림
+            const diffDays = Math.ceil((vaccineDate - today) / (1000 * 60 * 60 * 24));
+            if (vaccineCheck && val > 0 && diffDays <= 3 && diffDays >= -1) {
+                div.classList.add('needs-vaccine', 'vaccine-alert');
+            }
+        }
+
+        div.innerHTML = `<span>${label}</span><b>${val}</b>${dateHtml}`;
+        div.onclick = () => openModal(key, label, val, inDateStr);
         parent.appendChild(div);
     }
 
-    function openModal(key, label, count) {
+    function openModal(key, label, count, inDateStr) {
         currentSelectedKey = key;
         document.getElementById('modal-title').innerText = label + " 관리";
-        document.getElementById('modal-count').innerText = count;
+        let info = `현재: ${count}두`;
+        if (inDateStr) {
+            const inDate = new Date(inDateStr);
+            const moveDate = new Date(inDate); moveDate.setDate(inDate.getDate() + 33);
+            const vacDate = new Date(inDate); vacDate.setDate(inDate.getDate() + 23);
+            info += `<br>입식: ${inDateStr}<br><b>백신접종일: ${vacDate.getFullYear()}-${vacDate.getMonth()+1}-${vacDate.getDate()}</b><br>이동예정: ${moveDate.getFullYear()}-${moveDate.getMonth()+1}-${moveDate.getDate()}`;
+        }
+        document.getElementById('modal-sub-info').innerHTML = info;
         document.getElementById('action-modal').style.display = 'block';
     }
 
-    function adjustCount(amt) {
-        let count = parseInt(localStorage.getItem(currentSelectedKey)) || 0;
-        count = Math.max(0, count + amt);
-        localStorage.setItem(currentSelectedKey, count);
-        refreshUI();
-    }
-
-    function manualEdit() {
-        const n = prompt("변경할 마릿수를 입력하세요:");
-        if (n !== null) {
-            localStorage.setItem(currentSelectedKey, n);
+    function setInDate() {
+        const d = prompt("입식 날짜를 입력하세요 (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+        if (d) {
+            localStorage.setItem(currentSelectedKey + '_date', d);
             refreshUI();
         }
     }
 
-    function refreshUI() {
-        const buildingId = currentSelectedKey.split('_')[0];
-        openBuilding(buildingId);
-        closeModal();
-        initMap();
+    function adjustCount(amt) {
+        let count = parseInt(localStorage.getItem(currentSelectedKey)) || 0;
+        localStorage.setItem(currentSelectedKey, Math.max(0, count + amt));
+        refreshUI();
     }
 
+    function manualEdit() {
+        const n = prompt("마릿수 수정:", localStorage.getItem(currentSelectedKey) || 0);
+        if (n !== null) { localStorage.setItem(currentSelectedKey, n); refreshUI(); }
+    }
+
+    function refreshUI() { openBuilding(currentSelectedKey.split('_')[0]); closeModal(); initMap(); }
     function closeModal() { document.getElementById('action-modal').style.display = 'none'; }
     function closeBuilding() { document.getElementById('detail-view').style.display = 'none'; initMap(); }
 
