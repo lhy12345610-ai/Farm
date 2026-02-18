@@ -9,7 +9,6 @@
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 80px; }
         h1 { font-size: 1.2rem; text-align: center; color: #333; margin-bottom: 20px; }
 
-        /* 조감도 알림 배지 */
         .farm-map { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
         .map-building { 
             background: var(--building-bg); border: 2px solid #ddd; border-radius: 12px; padding: 12px;
@@ -26,7 +25,6 @@
 
         .grid-container { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); }
         
-        /* 주간 업무 강조 스타일 */
         .room-header { background: #f0f0f0; padding: 10px; margin-top: 15px; border-radius: 8px; grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #ccc; }
         .room-header.this-week { border-left-color: var(--work); background: #f3e5f5; border-left-width: 8px; }
         .work-text { font-size: 0.75rem; font-weight: bold; color: var(--work); }
@@ -73,7 +71,7 @@
         'farrow1': { title: '분만 1동', count: 8, line: 'top', cycle: 28, workDay: 5, workName: '금요이유' },
         'farrow2': { title: '분만 2,3동', count: 12, line: 'top', cycle: 28, workDay: 5, workName: '금요이유' },
         'nursery': { title: '자돈사', rooms: 5, perRoom: 4, line: 'top', layout: 'room', cycle: 33, workDay: 2, workName: '화/수전출', vaccineDay: 23 },
-        'grower': { title: '육성사', rooms: 6, perRoom: 6, line: 'top', layout: 'room', cycle: 28, workDay: 2, workName: '화/수전출' },
+        'grower': { title: '육성사', rooms: 6, perRoom: 3, line: 'top', layout: 'room', cycle: 28, workDay: 2, workName: '화/수전출', isGrower: true },
         'gilt': { title: '후보사', count: 10, line: 'top' },
         'mating': { title: '종부사', count: 10, line: 'top' },
         'finisher1': { title: '비육 1동', count: 12, line: 'bottom', layout: 'lr' },
@@ -86,7 +84,6 @@
     let currentSelectedKey = '';
     const today = new Date();
     
-    // 이번 주의 시작(월)과 끝(일) 계산
     const currentMonday = new Date(today);
     currentMonday.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
     currentMonday.setHours(0,0,0,0);
@@ -164,7 +161,10 @@
                     <div class="room-info">입식일: ${[...new Set(roomDates)].join(', ') || '없음'}</div>
                 `;
                 grid.appendChild(header);
-                for (let c = 1; c <= b.perRoom; c++) createCell(grid, `${id}_${r}_${c}`, `${c}번`, b.vaccineDay);
+                for (let c = 1; c <= b.perRoom; c++) {
+                    let label = b.isGrower ? `${(c*2)-1}-${c*2}번` : `${c}번`;
+                    createCell(grid, `${id}_${r}_${c}`, label, b.vaccineDay, b.cycle, b.workName);
+                }
             }
         } else {
             for (let i = 1; i <= b.count; i++) {
@@ -179,7 +179,7 @@
         const val = parseInt(localStorage.getItem(key)) || 0;
         const inDateStr = localStorage.getItem(key + '_date');
         const div = document.createElement('div');
-        div.className = 'cell ' + (val == 0 ? '' : (val > 25 ? 'full' : 'active'));
+        div.className = 'cell ' + (val == 0 ? '' : (val > 50 ? 'full' : 'active')); // 통합칸이므로 기준 상향
         
         if (inDateStr && val > 0) {
             const inDate = new Date(inDateStr);
