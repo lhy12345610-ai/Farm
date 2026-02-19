@@ -25,29 +25,26 @@
 
         .grid-container { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); }
         
-        .room-header { background: #f0f0f0; padding: 10px; margin-top: 15px; border-radius: 8px; grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #ccc; }
-        .room-header.this-week { border-left-color: var(--work); background: #f3e5f5; border-left-width: 8px; }
-        .work-text { font-size: 0.75rem; font-weight: bold; color: var(--work); }
-        .room-info { font-size: 0.7rem; color: #666; text-align: right; }
-
-        .cell { aspect-ratio: 1/1.1; border: 1.5px solid #eee; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff; position: relative; }
-        .cell span { font-size: 0.65rem; color: #888; margin-bottom: 2px; }
-        .cell b { font-size: 1.1rem; }
-        .cell .date-info { font-size: 0.55rem; color: #555; text-align: center; margin-top: 2px; }
+        /* 방 제목 및 총 마릿수 입력창 스타일 */
+        .room-header { background: #f0f0f0; padding: 12px; margin-top: 15px; border-radius: 10px; grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; border-left: 6px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .room-header.this-week { border-left-color: var(--work); background: #f3e5f5; }
+        .room-title-area { display: flex; flex-direction: column; flex: 1; }
+        .room-title { font-size: 0.9rem; font-weight: bold; margin-bottom: 2px; }
+        .room-total-input { background: var(--blue); color: white; border: none; border-radius: 6px; padding: 8px 12px; font-weight: bold; font-size: 0.85rem; cursor: pointer; text-align: center; min-width: 80px; }
         
+        .cell { aspect-ratio: 1/1.1; border: 1.5px solid #eee; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff; position: relative; }
+        .cell b { font-size: 1.1rem; }
+        .date-info { font-size: 0.55rem; color: #555; text-align: center; margin-top: 2px; }
         .vaccine-alert::after { content: "💉백신"; position: absolute; top: -5px; right: -5px; background: var(--vaccine); color: white; font-size: 0.55rem; padding: 2px 4px; border-radius: 4px; font-weight: bold; }
 
-        /* 모달 디자인 수정 */
         #action-modal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: white; border-radius: 20px 20px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.2); z-index: 200; padding: 25px 20px; box-sizing: border-box; }
         .btn-group { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 15px; }
         .btn { padding: 15px; border: none; border-radius: 12px; font-weight: bold; font-size: 1rem; color: white; cursor: pointer; }
-        .btn-direct { background: var(--blue); grid-column: span 2; font-size: 1.1rem; margin-bottom: 5px; }
-        .btn-date { background: var(--work); grid-column: span 2; }
     </style>
 </head>
 <body>
 
-<h1>🐷 농장 주간 업무 현황</h1>
+<h1>🐷 농장 통합 관리 시스템</h1>
 
 <div class="farm-map" id="top-line"></div>
 <div class="farm-map" id="bottom-line" style="grid-template-columns: repeat(2, 1fr);"></div>
@@ -59,16 +56,13 @@
 </div>
 
 <div id="action-modal">
-    <h3 id="modal-title" style="margin:0; font-size: 1.3rem;">칸 관리</h3>
-    <div id="modal-sub-info" style="font-size: 0.9rem; margin: 10px 0; color: #444; line-height: 1.5; background: #f8f9fa; padding: 10px; border-radius: 8px;"></div>
-    
+    <h3 id="modal-title" style="margin:0;">칸 관리</h3>
+    <div id="modal-sub-info" style="font-size: 0.9rem; margin: 10px 0; color: #444; background: #f8f9fa; padding: 10px; border-radius: 8px;"></div>
     <div class="btn-group">
-        <button class="btn btn-direct" onclick="manualEdit()">⌨️ 마릿수 직접 입력</button>
-        
+        <button class="btn" style="background:var(--blue); grid-column: span 2;" onclick="manualEdit()">⌨️ 마릿수 직접 입력</button>
         <button class="btn" style="background:var(--green);" onclick="adjustCount(1)">+1 입식</button>
         <button class="btn" style="background:var(--red);" onclick="adjustCount(-1)">-1 폐사</button>
-        
-        <button class="btn btn-date" onclick="setInDate()">📅 입식/이유 날짜 설정</button>
+        <button class="btn" style="background:var(--work); grid-column: span 2;" onclick="setInDate()">📅 날짜 설정</button>
         <button class="btn" style="background:#888; grid-column: span 2;" onclick="closeModal()">닫기</button>
     </div>
 </div>
@@ -90,13 +84,11 @@
 
     let currentSelectedKey = '';
     const today = new Date();
-    
     const currentMonday = new Date(today);
     currentMonday.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
     currentMonday.setHours(0,0,0,0);
     const currentSunday = new Date(currentMonday);
     currentSunday.setDate(currentMonday.getDate() + 6);
-    currentSunday.setHours(23,59,59,999);
 
     function checkWorkThisWeek(inDateStr, cycle) {
         if (!inDateStr) return false;
@@ -138,21 +130,30 @@
 
         if (b.layout === 'room') {
             for (let r = 1; r <= b.rooms; r++) {
+                let roomTotal = 0;
                 let roomDates = [];
                 let roomHasWork = false;
                 let workType = "";
                 for(let c=1; c<=b.perRoom; c++) {
+                    const count = parseInt(localStorage.getItem(`${id}_${r}_${c}`)) || 0;
                     const d = localStorage.getItem(`${id}_${r}_${c}_date`);
+                    roomTotal += count;
                     if(d) {
                         roomDates.push(d);
                         if(checkWorkThisWeek(d, b.cycle)) { roomHasWork = true; workType = b.workName; }
                         if(b.vaccineDay && checkWorkThisWeek(d, b.vaccineDay)) { roomHasWork = true; workType = "백신"; }
                     }
                 }
+
                 const header = document.createElement('div');
                 header.className = 'room-header' + (roomHasWork ? ' this-week' : '');
-                header.onclick = () => batchSetDate(id, r, b.perRoom);
-                header.innerHTML = `<div><div class="room-title">${r}번 방 ${roomHasWork ? '<span class="work-text">['+workType+']</span>' : ''}</div><div style="font-size:0.6rem; color:#888;">(방 전체 날짜 설정)</div></div><div class="room-info">입식: ${[...new Set(roomDates)].join(', ') || '없음'}</div>`;
+                header.innerHTML = `
+                    <div class="room-title-area">
+                        <div class="room-title">${r}번 방 ${roomHasWork ? '<span style="color:var(--work)">['+workType+']</span>' : ''}</div>
+                        <div style="font-size:0.65rem; color:#666;">입식: ${[...new Set(roomDates)].join(', ') || '날짜없음'}</div>
+                    </div>
+                    <button class="room-total-input" onclick="batchSetRoom('${id}', ${r}, ${b.perRoom})">총 ${roomTotal}두 입기</button>
+                `;
                 grid.appendChild(header);
                 for (let c = 1; c <= b.perRoom; c++) {
                     let label = b.isGrower ? `${(c*2)-1}-${c*2}번` : `${c}번`;
@@ -186,6 +187,21 @@
         parent.appendChild(div);
     }
 
+    function batchSetRoom(id, r, per) {
+        const total = prompt(`${r}번 방 전체 마릿수를 입력하세요:`);
+        const d = prompt(`방 전체 입식 날짜 (YYYY-MM-DD):`, today.toISOString().split('T')[0]);
+        if(total !== null && !isNaN(total)) {
+            const each = Math.floor(parseInt(total) / per);
+            const remain = parseInt(total) % per;
+            for(let c=1; c<=per; c++) {
+                localStorage.setItem(`${id}_${r}_${c}`, each + (c === 1 ? remain : 0));
+                if(d) localStorage.setItem(`${id}_${r}_${c}_date`, d);
+            }
+            openBuilding(id);
+            initMap();
+        }
+    }
+
     function openModal(key, label, count, inDateStr) {
         currentSelectedKey = key;
         const b = buildings[key.split('_')[0]];
@@ -194,19 +210,15 @@
         if (inDateStr) {
             const inDate = new Date(inDateStr);
             const moveDate = new Date(inDate); moveDate.setDate(inDate.getDate() + (b.cycle || 0));
-            info += `<br>입식/분만일: ${inDateStr}<br>다음 이동예정: ${moveDate.toLocaleDateString()}`;
+            info += `<br>입식/분만일: ${inDateStr}<br>이동예정: ${moveDate.toLocaleDateString()}`;
         }
         document.getElementById('modal-sub-info').innerHTML = info;
         document.getElementById('action-modal').style.display = 'block';
     }
 
     function manualEdit() {
-        const current = localStorage.getItem(currentSelectedKey) || 0;
-        const n = prompt("정확한 마릿수를 숫자로 입력해 주세요:", current);
-        if (n !== null && !isNaN(n)) {
-            localStorage.setItem(currentSelectedKey, parseInt(n));
-            refreshUI();
-        }
+        const n = prompt("마릿수 직접 입력:", localStorage.getItem(currentSelectedKey) || 0);
+        if (n !== null && !isNaN(n)) { localStorage.setItem(currentSelectedKey, parseInt(n)); refreshUI(); }
     }
 
     function adjustCount(amt) {
@@ -216,13 +228,8 @@
     }
 
     function setInDate() {
-        const d = prompt("날짜 입력 (예: 2024-05-20):", today.toISOString().split('T')[0]);
+        const d = prompt("날짜 입력 (YYYY-MM-DD):", today.toISOString().split('T')[0]);
         if (d) { localStorage.setItem(currentSelectedKey + '_date', d); refreshUI(); }
-    }
-
-    function batchSetDate(id, r, per) {
-        const d = prompt(`${r}번 방 전체 날짜 설정:`, today.toISOString().split('T')[0]);
-        if(d) { for(let c=1; c<=per; c++) localStorage.setItem(`${id}_${r}_${c}_date`, d); openBuilding(id); }
     }
 
     function refreshUI() { openBuilding(currentSelectedKey.split('_')[0]); closeModal(); initMap(); }
