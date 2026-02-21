@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>농장 주간 업무 시스템</title>
+    <title>농장 통합 관리 시스템</title>
     <style>
         :root { --main-pink: #ffafbd; --bg: #f8f9fa; --building-bg: #ffffff; --green: #2e7d32; --red: #c62828; --vaccine: #ff9800; --work: #673ab7; --blue: #1976d2; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 80px; }
@@ -25,7 +25,6 @@
 
         .grid-container { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); }
         
-        /* 방 제목 및 총 마릿수 입력창 스타일 */
         .room-header { background: #f0f0f0; padding: 12px; margin-top: 15px; border-radius: 10px; grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; border-left: 6px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .room-header.this-week { border-left-color: var(--work); background: #f3e5f5; }
         .room-title-area { display: flex; flex-direction: column; flex: 1; }
@@ -36,6 +35,12 @@
         .cell b { font-size: 1.1rem; }
         .date-info { font-size: 0.55rem; color: #555; text-align: center; margin-top: 2px; }
         .vaccine-alert::after { content: "💉백신"; position: absolute; top: -5px; right: -5px; background: var(--vaccine); color: white; font-size: 0.55rem; padding: 2px 4px; border-radius: 4px; font-weight: bold; }
+
+        /* 임신 5동 전용 스타일 */
+        .entrance-bar { grid-column: 1 / -1; background: #444; color: white; text-align: center; padding: 8px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8rem; }
+        .gest-column { display: flex; flex-direction: column; gap: 10px; background: #f1f3f5; padding: 10px; border-radius: 10px; }
+        .group-card { background: white; padding: 8px; border-radius: 6px; border-left: 4px solid var(--work); box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-size: 0.75rem; margin-bottom: 5px; position: relative; }
+        .group-del { position: absolute; top: 5px; right: 5px; color: #ccc; font-size: 12px; cursor: pointer; }
 
         #action-modal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: white; border-radius: 20px 20px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.2); z-index: 200; padding: 25px 20px; box-sizing: border-box; }
         .btn-group { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 15px; }
@@ -59,10 +64,10 @@
     <h3 id="modal-title" style="margin:0;">칸 관리</h3>
     <div id="modal-sub-info" style="font-size: 0.9rem; margin: 10px 0; color: #444; background: #f8f9fa; padding: 10px; border-radius: 8px;"></div>
     <div class="btn-group">
-        <button class="btn" style="background:var(--blue); grid-column: span 2;" onclick="manualEdit()">⌨️ 마릿수 직접 입력</button>
-        <button class="btn" style="background:var(--green);" onclick="adjustCount(1)">+1 입식</button>
-        <button class="btn" style="background:var(--red);" onclick="adjustCount(-1)">-1 폐사</button>
-        <button class="btn" style="background:var(--work); grid-column: span 2;" onclick="setInDate()">📅 날짜 설정</button>
+        <button id="btn-edit" class="btn" style="background:var(--blue); grid-column: span 2;" onclick="manualEdit()">⌨️ 마릿수 직접 입력</button>
+        <button id="btn-plus" class="btn" style="background:var(--green);" onclick="adjustCount(1)">+1 입식</button>
+        <button id="btn-minus" class="btn" style="background:var(--red);" onclick="adjustCount(-1)">-1 폐사</button>
+        <button id="btn-date" class="btn" style="background:var(--work); grid-column: span 2;" onclick="setInDate()">📅 날짜 설정</button>
         <button class="btn" style="background:#888; grid-column: span 2;" onclick="closeModal()">닫기</button>
     </div>
 </div>
@@ -78,8 +83,8 @@
         'finisher1': { title: '비육 1동', count: 12, line: 'bottom', layout: 'lr' },
         'finisher2': { title: '비육 2동', count: 22, line: 'bottom', layout: 'lr' },
         'finisher3': { title: '비육 3동', count: 21, line: 'bottom' },
-        'gest4': { title: '임신 4동', count: 20, line: 'bottom' },
-        'gest5': { title: '임신 5동', count: 20, line: 'bottom' }
+        'gest4': { title: '임신 4동', count: 20, line: 'bottom', cycle: 114, isGest: true },
+        'gest5': { title: '임신 5동', line: 'bottom', layout: 'gestSpecial', rows: [83, 83, 84], cycle: 114, isGest: true }
     };
 
     let currentSelectedKey = '';
@@ -89,6 +94,15 @@
     currentMonday.setHours(0,0,0,0);
     const currentSunday = new Date(currentMonday);
     currentSunday.setDate(currentMonday.getDate() + 6);
+
+    // 날짜를 입력받아 그 주의 일요일 날짜를 "M월 D일 그룹" 형식으로 반환
+    function getGroupName(dateStr) {
+        const d = new Date(dateStr);
+        const day = d.getDay(); 
+        const sunday = new Date(d);
+        sunday.setDate(d.getDate() - day);
+        return `${sunday.getMonth() + 1}월 ${sunday.getDate()}일 그룹`;
+    }
 
     function checkWorkThisWeek(inDateStr, cycle) {
         if (!inDateStr) return false;
@@ -108,15 +122,26 @@
             div.onclick = () => openBuilding(id);
             let total = 0;
             let hasWork = false;
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key.startsWith(id) && !key.includes('_date')) {
-                    total += parseInt(localStorage.getItem(key)) || 0;
-                    if (b.cycle && checkWorkThisWeek(localStorage.getItem(key + '_date'), b.cycle)) hasWork = true;
-                    if (b.vaccineDay && checkWorkThisWeek(localStorage.getItem(key + '_date'), b.vaccineDay)) hasWork = true;
+
+            if (id === 'gest5') {
+                // 임신 5동은 그룹 데이터를 합산
+                for(let r=1; r<=3; r++){
+                    const groups = JSON.parse(localStorage.getItem(`gest5_row${r}_groups`) || "[]");
+                    groups.forEach(g => {
+                        if(checkWorkThisWeek(g.date, b.cycle)) hasWork = true;
+                    });
+                }
+            } else {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.startsWith(id) && !key.includes('_date')) {
+                        total += parseInt(localStorage.getItem(key)) || 0;
+                        if (b.cycle && checkWorkThisWeek(localStorage.getItem(key + '_date'), b.cycle)) hasWork = true;
+                        if (b.vaccineDay && checkWorkThisWeek(localStorage.getItem(key + '_date'), b.vaccineDay)) hasWork = true;
+                    }
                 }
             }
-            div.innerHTML = `${hasWork ? '<div class="work-badge">!</div>' : ''}<b>${b.title}</b><span>${total}두</span>`;
+            div.innerHTML = `${hasWork ? '<div class="work-badge">!</div>' : ''}<b>${b.title}</b><span>${id === 'gest5' ? '관리중' : total + '두'}</span>`;
             (b.line === 'top' ? top : bottom).appendChild(div);
         }
     }
@@ -126,9 +151,34 @@
         const grid = document.getElementById('detail-grid');
         document.getElementById('detail-title').innerText = b.title;
         grid.innerHTML = '';
-        grid.style.gridTemplateColumns = b.layout === 'lr' ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(85px, 1fr))';
 
-        if (b.layout === 'room') {
+        if (id === 'gest5') {
+            grid.style.gridTemplateColumns = "repeat(3, 1fr)";
+            grid.innerHTML = `<div class="entrance-bar">▼ 건물 입구 (1번 스톨 시작) ▼</div>`;
+            
+            b.rows.forEach((maxStall, idx) => {
+                const rowNum = idx + 1;
+                const col = document.createElement('div');
+                col.className = 'gest-column';
+                col.innerHTML = `<div style="text-align:center; font-weight:bold; font-size:0.8rem; margin-bottom:5px;">${rowNum}열 (1~${maxStall}번)</div>
+                                 <button class="room-total-input" style="width:100%; margin-bottom:10px;" onclick="setStallRange('${id}', ${rowNum}, ${maxStall})">범위 추가</button>`;
+                
+                const groups = JSON.parse(localStorage.getItem(`${id}_row${rowNum}_groups`) || "[]");
+                groups.sort((a,b) => a.start - b.start).forEach((g, gIdx) => {
+                    const fDate = new Date(g.date); fDate.setDate(fDate.getDate() + 114);
+                    const card = document.createElement('div');
+                    card.className = 'group-card';
+                    if(checkWorkThisWeek(g.date, 114)) card.style.backgroundColor = "#fff3e0";
+                    card.innerHTML = `<span class="group-del" onclick="deleteGroup('${id}', ${rowNum}, ${gIdx})">✖</span>
+                                      <b>${g.start}~${g.end}번</b><br>
+                                      <span style="color:var(--work)">${g.name}</span><br>
+                                      <small>분만예정: ${fDate.getMonth()+1}/${fDate.getDate()}</small>`;
+                    col.appendChild(card);
+                });
+                grid.appendChild(col);
+            });
+        } else if (b.layout === 'room') {
+            grid.style.gridTemplateColumns = "repeat(auto-fill, minmax(85px, 1fr))";
             for (let r = 1; r <= b.rooms; r++) {
                 let roomTotal = 0;
                 let roomDates = [];
@@ -144,26 +194,20 @@
                         if(b.vaccineDay && checkWorkThisWeek(d, b.vaccineDay)) { roomHasWork = true; workType = "백신"; }
                     }
                 }
-
                 const header = document.createElement('div');
                 header.className = 'room-header' + (roomHasWork ? ' this-week' : '');
-                header.innerHTML = `
-                    <div class="room-title-area">
-                        <div class="room-title">${r}번 방 ${roomHasWork ? '<span style="color:var(--work)">['+workType+']</span>' : ''}</div>
-                        <div style="font-size:0.65rem; color:#666;">입식: ${[...new Set(roomDates)].join(', ') || '날짜없음'}</div>
-                    </div>
-                    <button class="room-total-input" onclick="batchSetRoom('${id}', ${r}, ${b.perRoom})">총 ${roomTotal}두 입기</button>
-                `;
+                header.innerHTML = `<div class="room-title-area"><div class="room-title">${r}번 방 ${roomHasWork ? '<span style="color:var(--work)">['+workType+']</span>' : ''}</div>
+                                    <div style="font-size:0.65rem; color:#666;">입식: ${[...new Set(roomDates)].join(', ') || '날짜없음'}</div></div>
+                                    <button class="room-total-input" onclick="batchSetRoom('${id}', ${r}, ${b.perRoom})">총 ${roomTotal}두 입기</button>`;
                 grid.appendChild(header);
                 for (let c = 1; c <= b.perRoom; c++) {
-                    let label = b.isGrower ? `${(c*2)-1}-${c*2}번` : `${c}번`;
-                    createCell(grid, `${id}_${r}_${c}`, label, b.vaccineDay, b.cycle);
+                    createCell(grid, `${id}_${r}_${c}`, b.isGrower ? `${(c*2)-1}-${c*2}번` : `${c}번`, b.vaccineDay, b.cycle);
                 }
             }
         } else {
+            grid.style.gridTemplateColumns = b.layout === 'lr' ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(85px, 1fr))';
             for (let i = 1; i <= b.count; i++) {
-                let label = b.layout === 'lr' ? (i%2==1?'좌':'우')+Math.ceil(i/2) : i+'번';
-                createCell(grid, `${id}_${i}`, label, b.vaccineDay, b.cycle);
+                createCell(grid, `${id}_${i}`, b.layout === 'lr' ? (i%2==1?'좌':'우')+Math.ceil(i/2) : i+'번', b.vaccineDay, b.cycle);
             }
         }
         document.getElementById('detail-view').style.display = 'block';
@@ -172,31 +216,43 @@
     function createCell(parent, key, label, vDay, cycle) {
         const val = parseInt(localStorage.getItem(key)) || 0;
         const inDateStr = localStorage.getItem(key + '_date');
+        const b = buildings[key.split('_')[0]];
         const div = document.createElement('div');
-        div.className = 'cell ' + (val == 0 ? '' : (val > 50 ? 'full' : 'active'));
+        div.className = 'cell ' + (val == 0 ? '' : 'active');
         if (inDateStr && val > 0) {
             const inDate = new Date(inDateStr);
             if (vDay && checkWorkThisWeek(inDateStr, vDay)) div.classList.add('vaccine-alert');
-            if (cycle && checkWorkThisWeek(inDateStr, cycle)) div.style.borderColor = "var(--work)";
             const target = new Date(inDate); target.setDate(inDate.getDate() + (cycle || 0));
-            div.innerHTML = `<span>${label}</span><b>${val}</b><div class="date-info">${target.getMonth()+1}/${target.getDate()}예정</div>`;
+            if (cycle && checkWorkThisWeek(inDateStr, cycle)) div.style.borderColor = b.isGest ? "var(--red)" : "var(--work)";
+            div.innerHTML = `<span>${label}</span><b>${val}</b><div class="date-info">${b.isGest ? '분만' : '예정'}:${target.getMonth()+1}/${target.getDate()}</div>`;
         } else {
             div.innerHTML = `<span>${label}</span><b>${val}</b>`;
         }
-        div.onclick = (e) => { e.stopPropagation(); openModal(key, label, val, inDateStr); };
+        div.onclick = (e) => openModal(key, label, val, inDateStr);
         parent.appendChild(div);
     }
 
-    function batchSetRoom(id, r, per) {
-        const total = prompt(`${r}번 방 전체 마릿수를 입력하세요:`);
-        const d = prompt(`방 전체 입식 날짜 (YYYY-MM-DD):`, today.toISOString().split('T')[0]);
-        if(total !== null && !isNaN(total)) {
-            const each = Math.floor(parseInt(total) / per);
-            const remain = parseInt(total) % per;
-            for(let c=1; c<=per; c++) {
-                localStorage.setItem(`${id}_${r}_${c}`, each + (c === 1 ? remain : 0));
-                if(d) localStorage.setItem(`${id}_${r}_${c}_date`, d);
-            }
+    // 임신 5동 범위 설정
+    function setStallRange(id, rowNum, max) {
+        const start = prompt(`${rowNum}열: 시작 스톨 (1~${max})`);
+        const end = prompt(`${rowNum}열: 끝 스톨 (${start}~${max})`);
+        const date = prompt(`교배일 입력 (YYYY-MM-DD)`, today.toISOString().split('T')[0]);
+        if (start && end && date) {
+            const rangeKey = `${id}_row${rowNum}_groups`;
+            let groups = JSON.parse(localStorage.getItem(rangeKey) || "[]");
+            groups.push({ start: parseInt(start), end: parseInt(end), date: date, name: getGroupName(date) });
+            localStorage.setItem(rangeKey, JSON.stringify(groups));
+            openBuilding(id);
+            initMap();
+        }
+    }
+
+    function deleteGroup(id, rowNum, gIdx) {
+        if(confirm("이 그룹을 삭제하시겠습니까?")) {
+            const rangeKey = `${id}_row${rowNum}_groups`;
+            let groups = JSON.parse(localStorage.getItem(rangeKey) || "[]");
+            groups.splice(gIdx, 1);
+            localStorage.setItem(rangeKey, JSON.stringify(groups));
             openBuilding(id);
             initMap();
         }
@@ -210,28 +266,39 @@
         if (inDateStr) {
             const inDate = new Date(inDateStr);
             const moveDate = new Date(inDate); moveDate.setDate(inDate.getDate() + (b.cycle || 0));
-            info += `<br>입식/분만일: ${inDateStr}<br>이동예정: ${moveDate.toLocaleDateString()}`;
+            info += `<br>${b.isGest ? '교배일' : '입식일'}: ${inDateStr}<br><b>${b.isGest ? '분만예정' : '이동예정'}: ${moveDate.toLocaleDateString()}</b>`;
         }
+        document.getElementById('btn-date').innerText = b.isGest ? "💘 교배일 설정" : "📅 날짜 설정";
         document.getElementById('modal-sub-info').innerHTML = info;
         document.getElementById('action-modal').style.display = 'block';
     }
 
-    function manualEdit() {
-        const n = prompt("마릿수 직접 입력:", localStorage.getItem(currentSelectedKey) || 0);
-        if (n !== null && !isNaN(n)) { localStorage.setItem(currentSelectedKey, parseInt(n)); refreshUI(); }
+    // 나머지 헬퍼 함수들
+    function batchSetRoom(id, r, per) {
+        const total = prompt(`${r}번 방 전체 마릿수:`);
+        const d = prompt(`입식 날짜:`, today.toISOString().split('T')[0]);
+        if(total !== null) {
+            const each = Math.floor(parseInt(total)/per), rem = parseInt(total)%per;
+            for(let c=1; c<=per; c++) {
+                localStorage.setItem(`${id}_${r}_${c}`, each + (c===1?rem:0));
+                if(d) localStorage.setItem(`${id}_${r}_${c}_date`, d);
+            }
+            refreshUI();
+        }
     }
-
+    function manualEdit() { 
+        const n = prompt("마릿수 직접 입력:", localStorage.getItem(currentSelectedKey) || 0);
+        if (n !== null) { localStorage.setItem(currentSelectedKey, parseInt(n)); refreshUI(); }
+    }
     function adjustCount(amt) {
-        let count = parseInt(localStorage.getItem(currentSelectedKey)) || 0;
-        localStorage.setItem(currentSelectedKey, Math.max(0, count + amt));
+        let cnt = parseInt(localStorage.getItem(currentSelectedKey)) || 0;
+        localStorage.setItem(currentSelectedKey, Math.max(0, cnt + amt));
         refreshUI();
     }
-
     function setInDate() {
         const d = prompt("날짜 입력 (YYYY-MM-DD):", today.toISOString().split('T')[0]);
         if (d) { localStorage.setItem(currentSelectedKey + '_date', d); refreshUI(); }
     }
-
     function refreshUI() { openBuilding(currentSelectedKey.split('_')[0]); closeModal(); initMap(); }
     function closeModal() { document.getElementById('action-modal').style.display = 'none'; }
     function closeBuilding() { document.getElementById('detail-view').style.display = 'none'; initMap(); }
