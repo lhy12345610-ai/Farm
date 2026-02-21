@@ -8,7 +8,7 @@
         :root { 
             --main-pink: #ffafbd; --bg: #f8f9fa; --building-bg: #ffffff; 
             --green: #2e7d32; --red: #c62828; --vaccine: #ff9800; 
-            --work: #673ab7; --blue: #1976d2; --group-tag: #e8f5e9;
+            --work: #673ab7; --blue: #1976d2; 
         }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 80px; }
         h1 { font-size: 1.2rem; text-align: center; color: #333; margin-bottom: 20px; }
@@ -18,33 +18,31 @@
         .map-building { 
             background: var(--building-bg); border: 2px solid #ddd; border-radius: 12px; padding: 12px;
             text-align: center; cursor: pointer; min-height: 70px; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            justify-content: center; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); position: relative;
         }
-        .map-building:active { transform: scale(0.98); background: #eee; }
+        .map-building b { font-size: 0.85rem; margin-bottom: 4px; }
+        .map-building span { font-size: 0.75rem; color: var(--green); font-weight: bold; }
 
         /* 상세 화면 */
         #detail-view { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 100; overflow-y: auto; padding: 20px 10px; box-sizing: border-box; }
-        .nav-bar { display: flex; gap: 10px; margin-bottom: 15px; position: sticky; top: 0; background: white; z-index: 10; padding: 5px 0; border-bottom: 1px solid #eee; }
-        .close-btn { flex: 1; padding: 12px; background: #333; color: white; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: bold; }
+        .nav-bar { display: flex; gap: 10px; margin-bottom: 15px; position: sticky; top: 0; background: white; z-index: 10; padding: 5px 0; }
+        .close-btn { flex: 1; padding: 12px; background: #333; color: white; border: none; border-radius: 8px; font-size: 0.9rem; }
 
-        /* 임신사 레이아웃 */
-        .gest-container { display: flex; flex-direction: column; gap: 15px; align-items: center; }
-        .entrance-mark { background: #444; color: white; width: 100%; text-align: center; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 0.9rem; }
-        .gest-row-wrapper { display: flex; gap: 12px; width: 100%; overflow-x: auto; padding-bottom: 30px; }
-        .gest-column { flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 3px; }
-        .gest-column h4 { margin: 0 0 8px 0; font-size: 0.8rem; text-align: center; background: #f0f0f0; padding: 6px; border-radius: 4px; border: 1px solid #ddd; }
+        /* 임신사 전용 레이아웃 */
+        .gest-container { display: flex; flex-direction: column; gap: 20px; align-items: center; }
+        .entrance-mark { background: #eee; width: 100%; text-align: center; padding: 10px; border-radius: 5px; font-weight: bold; color: #666; border: 2px dashed #ccc; }
+        .gest-row-wrapper { display: flex; gap: 15px; width: 100%; overflow-x: auto; padding-bottom: 20px; justify-content: center; }
+        .gest-column { display: flex; flex-direction: column; gap: 4px; min-width: 70px; }
+        .gest-column h4 { margin: 0 0 10px 0; font-size: 0.8rem; text-align: center; background: #f0f0f0; padding: 5px; border-radius: 4px; }
         
-        .stall { width: 100%; height: 32px; border: 1px solid #eee; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.6rem; background: #fff; color: #999; }
+        .stall { width: 100%; height: 28px; border: 1px solid #ddd; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; background: #fff; }
         .stall.occupied { background: var(--blue); color: white; border-color: #0d47a1; font-weight: bold; }
-        .stall.occupied span { font-size: 0.55rem; opacity: 0.9; }
 
-        /* 컨트롤 및 그룹 목록 */
-        #gest-controls { display:none; margin-bottom: 20px; padding: 15px; background: #f1f8ff; border-radius: 12px; border: 1px solid #d0e3ff; }
-        .btn { padding: 12px; border: none; border-radius: 8px; font-weight: bold; color: white; cursor: pointer; font-size: 0.9rem; }
-        .group-list-container { margin-top: 15px; border-top: 1px dashed #abc; padding-top: 10px; }
-        .group-item { background: #fff; margin-bottom: 6px; padding: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
-        .group-info { font-size: 0.8rem; line-height: 1.4; }
-        .del-btn { background: #ff5252; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.75rem; }
+        /* 컨트롤 영역 */
+        #gest-controls { display:none; text-align: center; margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-radius: 10px; }
+        .btn { padding: 12px; border: none; border-radius: 8px; font-weight: bold; color: white; cursor: pointer; }
+        .group-item { background: #fff; margin-top: 5px; padding: 8px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #cee3f5; }
+        .del-btn { background: var(--red); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; }
     </style>
 </head>
 <body>
@@ -59,16 +57,15 @@
     <h2 id="detail-title" style="text-align:center; margin:10px 0;"></h2>
     
     <div id="gest-controls">
-        <p style="margin:0 0 10px 0; font-weight:bold; color:#1976d2;">📅 주간 교배 그룹 등록</p>
-        <button class="btn" style="background:var(--blue); width: 100%;" onclick="addGroup()">신규 교배 그룹 등록</button>
-        <div class="group-list-container" id="group-list"></div>
+        <p style="margin:0 0 10px 0; font-weight:bold;">📍 주간 교배 그룹 등록</p>
+        <button class="btn" style="background:var(--blue); width: 100%;" onclick="addGroup()">새 그룹 등록 (스톨 지정)</button>
+        <div id="group-list" style="margin-top:10px; font-size:0.8rem; text-align: left;"></div>
     </div>
 
     <div id="detail-grid"></div>
 </div>
 
 <script>
-    // 임신 5동 데이터: 1열(83), 2열(83), 3열(84)
     const buildings = {
         'farrow1': { title: '분만 1동', line: 'top' },
         'farrow2': { title: '분만 2,3동', line: 'top' },
@@ -82,13 +79,12 @@
     function initMap() {
         const top = document.getElementById('top-line');
         const bottom = document.getElementById('bottom-line');
-        top.innerHTML = ''; bottom.innerHTML = '';
         for (let id in buildings) {
             const b = buildings[id];
             const div = document.createElement('div');
             div.className = 'map-building';
             div.onclick = () => openBuilding(id);
-            div.innerHTML = `<b>${b.title}</b><span>${b.type === 'gestation' ? '관리중' : '-'}</span>`;
+            div.innerHTML = `<b>${b.title}</b>`;
             (b.line === 'top' ? top : bottom).appendChild(div);
         }
     }
@@ -104,7 +100,7 @@
         if (b.type === 'gestation') {
             controls.style.display = 'block';
             grid.className = 'gest-container';
-            grid.innerHTML = '<div class="entrance-mark">⬇️ 입구 (Main Entrance)</div>';
+            grid.innerHTML = '<div class="entrance-mark">⬇️ 입구 (Entrance)</div>';
             
             const rowWrapper = document.createElement('div');
             rowWrapper.className = 'gest-row-wrapper';
@@ -115,21 +111,16 @@
             b.rows.forEach((count, idx) => {
                 const col = document.createElement('div');
                 col.className = 'gest-column';
-                col.innerHTML = `<h4>${idx+1}열 (${count}두)</h4>`;
-                
+                col.innerHTML = `<h4>${idx+1}열</h4>`;
                 for (let i = 1; i <= count; i++) {
-                    const rowNum = idx + 1;
+                    const stallId = (idx + 1) * 1000 + i;
                     const stall = document.createElement('div');
                     stall.className = 'stall';
                     
-                    // 해당 스톨이 어떤 그룹에 속하는지 확인
-                    const group = groups.find(g => g.row == rowNum && i >= g.start && i <= g.end);
-                    
+                    const group = groups.find(g => stallId >= g.start && stallId <= g.end);
                     if (group) {
                         stall.classList.add('occupied');
-                        // 날짜에서 월-일만 추출 (예: 2024-02-15 -> 02/15)
-                        const datePart = group.name.substring(5).replace('-', '/');
-                        stall.innerHTML = `<b>${datePart}</b><span>${i}번</span>`;
+                        stall.innerText = group.name.split('-').slice(1).join('-'); // 날짜(월-일)만 표시
                     } else {
                         stall.innerText = i;
                     }
@@ -140,52 +131,37 @@
             grid.appendChild(rowWrapper);
         } else {
             controls.style.display = 'none';
-            grid.innerHTML = '<p style="text-align:center; padding:100px 20px; color:#999; border:2px dashed #eee; border-radius:15px; margin:20px;">현재 동은 상세 관리 준비 중입니다.</p>';
+            grid.innerHTML = '<p style="text-align:center; padding:50px; color:#999;">준비 중인 동입니다.</p>';
         }
         document.getElementById('detail-view').style.display = 'block';
     }
 
     function addGroup() {
         const id = currentSelectedId;
-        const b = buildings[id];
-        
-        // 1. 일요일 날짜 입력
-        const dateStr = prompt("교배 주간 일요일 날짜를 입력하세요 (예: 2025-02-16):", new Date().toISOString().split('T')[0]);
+        const dateStr = prompt("교배 일요일 날짜 (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
         if (!dateStr) return;
         
-        // 2. 열 선택
-        const row = prompt(`몇 번째 열에 등록하시겠습니까? (1~${b.rows.length}열 중 선택):`);
-        if (!row || row < 1 || row > b.rows.length) {
-            alert("올바른 열 번호를 입력해주세요.");
-            return;
-        }
+        const row = prompt("해당 줄 번호 입력 (예: 1):");
+        const start = prompt("시작 스톨 번호:");
+        const end = prompt("종료 스톨 번호:");
         
-        // 3. 스톨 범위 입력
-        const maxStall = b.rows[row-1];
-        const start = prompt(`시작 스톨 번호 (1~${maxStall}):`);
-        const end = prompt(`종료 스톨 번호 (${start}~${maxStall}):`);
-        
-        if (start && end && parseInt(start) <= parseInt(end)) {
+        if (row && start && end) {
             const groups = JSON.parse(localStorage.getItem(`groups_${id}`) || '[]');
-            
+            const rowBase = parseInt(row) * 1000;
             groups.push({
                 id: Date.now(),
                 name: dateStr,
-                row: parseInt(row),
-                start: parseInt(start),
-                end: parseInt(end),
-                display: `${row}열 ${start}~${end}번`
+                start: rowBase + parseInt(start),
+                end: rowBase + parseInt(end),
+                display: `${row}열 ${start}~${end}`
             });
-            
             localStorage.setItem(`groups_${id}`, JSON.stringify(groups));
             openBuilding(id);
-        } else {
-            alert("입력값이 올바르지 않습니다.");
         }
     }
 
     function deleteGroup(groupId) {
-        if(!confirm("해당 그룹의 스톨 데이터를 모두 초기화하시겠습니까?")) return;
+        if(!confirm("이 그룹을 삭제하시겠습니까?")) return;
         let groups = JSON.parse(localStorage.getItem(`groups_${currentSelectedId}`) || '[]');
         groups = groups.filter(g => g.id !== groupId);
         localStorage.setItem(`groups_${currentSelectedId}`, JSON.stringify(groups));
@@ -194,16 +170,9 @@
 
     function renderGroupList(groups) {
         const listDiv = document.getElementById('group-list');
-        if (groups.length === 0) {
-            listDiv.innerHTML = '<p style="text-align:center; color:#999; font-size:0.75rem;">등록된 교배 그룹이 없습니다.</p>';
-            return;
-        }
-        listDiv.innerHTML = groups.sort((a,b) => new Date(b.name) - new Date(a.name)).map(g => `
+        listDiv.innerHTML = groups.map(g => `
             <div class="group-item">
-                <div class="group-info">
-                    <strong>📅 ${g.name} 그룹</strong><br>
-                    <span style="color:#1976d2;">📍 ${g.display}</span>
-                </div>
+                <span>📅 ${g.name} (${g.display})</span>
                 <button class="del-btn" onclick="deleteGroup(${g.id})">삭제</button>
             </div>
         `).join('');
