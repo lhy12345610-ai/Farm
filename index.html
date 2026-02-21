@@ -3,186 +3,243 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>농장 통합 관리 시스템 PRO</title>
+    <title>농장 통합 관리 시스템</title>
     <style>
-        :root { 
-            --main-pink: #ffafbd; --bg: #f8f9fa; --building-bg: #ffffff; 
-            --green: #2e7d32; --red: #c62828; --vaccine: #ff9800; 
-            --work: #673ab7; --blue: #1976d2; 
-        }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 80px; }
-        h1 { font-size: 1.2rem; text-align: center; color: #333; margin-bottom: 20px; }
+        :root { --main-bg: #f0f2f5; --card-bg: #ffffff; --primary: #1976d2; --accent: #673ab7; --green: #2e7d32; --red: #c62828; --orange: #ff9800; }
+        body { font-family: -apple-system, sans-serif; background: var(--main-bg); margin: 0; padding: 15px; padding-bottom: 50px; color: #333; }
+        
+        /* 헤더 스타일 */
+        .header { text-align: center; padding: 10px 0 20px; }
+        .header h1 { font-size: 1.3rem; margin: 0; color: #1a1a1a; }
+        .total-summary { background: white; padding: 10px; border-radius: 12px; margin-bottom: 20px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
 
-        /* 조감도 스타일 */
+        /* 메인 지도(조감도) */
         .farm-map { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
         .map-building { 
-            background: var(--building-bg); border: 2px solid #ddd; border-radius: 12px; padding: 12px;
-            text-align: center; cursor: pointer; min-height: 70px; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); position: relative;
+            background: var(--card-bg); border: 2px solid #ddd; border-radius: 12px; padding: 15px 5px;
+            text-align: center; cursor: pointer; position: relative; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-        .map-building b { font-size: 0.85rem; margin-bottom: 4px; }
-        .map-building span { font-size: 0.75rem; color: var(--green); font-weight: bold; }
+        .map-building:active { transform: scale(0.95); }
+        .work-badge { position: absolute; top: -5px; right: -5px; background: var(--red); color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 14px; font-weight: bold; display: flex; align-items: center; justify-content: center; border: 2px solid white; animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .map-building b { font-size: 0.85rem; display: block; margin-bottom: 5px; }
+        .map-building span { font-size: 0.9rem; color: var(--green); font-weight: bold; }
 
         /* 상세 화면 */
-        #detail-view { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 100; overflow-y: auto; padding: 20px 10px; box-sizing: border-box; }
-        .nav-bar { display: flex; gap: 10px; margin-bottom: 15px; position: sticky; top: 0; background: white; z-index: 10; padding: 5px 0; }
-        .close-btn { flex: 1; padding: 12px; background: #333; color: white; border: none; border-radius: 8px; font-size: 0.9rem; }
-
-        /* 임신사 전용 레이아웃 */
-        .gest-container { display: flex; flex-direction: column; gap: 20px; align-items: center; }
-        .entrance-mark { background: #eee; width: 100%; text-align: center; padding: 10px; border-radius: 5px; font-weight: bold; color: #666; border: 2px dashed #ccc; }
-        .gest-row-wrapper { display: flex; gap: 15px; width: 100%; overflow-x: auto; padding-bottom: 20px; justify-content: center; }
-        .gest-column { display: flex; flex-direction: column; gap: 4px; min-width: 70px; }
-        .gest-column h4 { margin: 0 0 10px 0; font-size: 0.8rem; text-align: center; background: #f0f0f0; padding: 5px; border-radius: 4px; }
+        #detail-view { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--main-bg); z-index: 100; overflow-y: auto; }
+        .nav-bar { background: #333; color: white; padding: 15px; display: flex; align-items: center; position: sticky; top: 0; z-index: 10; }
+        .close-btn { background: none; border: 1px solid white; color: white; padding: 5px 15px; border-radius: 5px; margin-right: 15px; }
         
-        .stall { width: 100%; height: 28px; border: 1px solid #ddd; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; background: #fff; }
-        .stall.occupied { background: var(--blue); color: white; border-color: #0d47a1; font-weight: bold; }
+        .content-container { padding: 15px; }
+        .grid-container { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
 
-        /* 컨트롤 영역 */
-        #gest-controls { display:none; text-align: center; margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-radius: 10px; }
-        .btn { padding: 12px; border: none; border-radius: 8px; font-weight: bold; color: white; cursor: pointer; }
-        .group-item { background: #fff; margin-top: 5px; padding: 8px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #cee3f5; }
-        .del-btn { background: var(--red); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; }
+        /* 방 제목 및 총합 입력 레이아웃 */
+        .room-header { 
+            grid-column: 1 / -1; background: #e9ecef; padding: 12px; border-radius: 10px; 
+            display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-left: 6px solid #adb5bd;
+        }
+        .room-header.active-work { border-left-color: var(--accent); background: #f3e5f5; }
+        .room-title { font-weight: bold; font-size: 0.95rem; }
+        .room-total-btn { background: var(--primary); color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; }
+
+        /* 개별 칸 스타일 */
+        .cell { 
+            background: white; border: 1px solid #eee; border-radius: 10px; aspect-ratio: 1/1.1;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .cell.has-pigs { border-color: #a5d6a7; background: #f1f8e9; }
+        .cell.work-target { border: 2px solid var(--accent); background: #f3e5f5; }
+        .cell b { font-size: 1.2rem; margin: 2px 0; }
+        .cell span { font-size: 0.7rem; color: #777; }
+        .date-info { font-size: 0.6rem; color: #555; text-align: center; }
+        .vaccine-tag { position: absolute; top: -5px; right: -5px; background: var(--orange); color: white; font-size: 0.6rem; padding: 2px 5px; border-radius: 4px; font-weight: bold; }
+
+        /* 모달 스타일 */
+        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 200; }
+        #action-modal { position: fixed; bottom: 0; left: 0; width: 100%; background: white; border-radius: 20px 20px 0 0; padding: 25px 20px; box-sizing: border-box; }
+        .btn-group { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .full-btn { grid-column: span 2; }
+        .btn { padding: 15px; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; color: white; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<h1>🐷 농장 통합 관리 시스템 PRO</h1>
+<div class="header">
+    <h1>🐷 스마트 농장 관리</h1>
+</div>
+
+<div class="total-summary" id="main-summary">전체 돼지: 계산 중...</div>
 
 <div class="farm-map" id="top-line"></div>
-<div class="farm-map" id="bottom-line"></div>
+<div class="farm-map" id="bottom-line" style="grid-template-columns: repeat(2, 1fr);"></div>
 
 <div id="detail-view">
-    <div class="nav-bar"><button class="close-btn" onclick="closeBuilding()">← 지도로 돌아가기</button></div>
-    <h2 id="detail-title" style="text-align:center; margin:10px 0;"></h2>
-    
-    <div id="gest-controls">
-        <p style="margin:0 0 10px 0; font-weight:bold;">📍 주간 교배 그룹 등록</p>
-        <button class="btn" style="background:var(--blue); width: 100%;" onclick="addGroup()">새 그룹 등록 (스톨 지정)</button>
-        <div id="group-list" style="margin-top:10px; font-size:0.8rem; text-align: left;"></div>
+    <div class="nav-bar">
+        <button class="close-btn" onclick="closeBuilding()">닫기</button>
+        <span id="detail-title">돈사 상세</span>
     </div>
+    <div class="content-container" id="detail-grid" class="grid-container"></div>
+</div>
 
-    <div id="detail-grid"></div>
+<div id="modal-overlay" onclick="closeModal()">
+    <div id="action-modal" onclick="event.stopPropagation()">
+        <h3 id="modal-label" style="margin: 0 0 15px;">칸 관리</h3>
+        <div id="modal-info" style="background:#f8f9fa; padding:15px; border-radius:10px; margin-bottom:20px; font-size:0.9rem; line-height:1.5;"></div>
+        <div class="btn-group">
+            <button class="btn full-btn" style="background:var(--primary);" onclick="promptCount()">⌨️ 마릿수 직접 입력</button>
+            <button class="btn" style="background:var(--green);" onclick="changeCount(1)">+1 입식</button>
+            <button class="btn" style="background:var(--red);" onclick="changeCount(-1)">-1 폐사</button>
+            <button class="btn full-btn" style="background:var(--accent);" onclick="promptDate()">📅 날짜 설정 (입식/이유)</button>
+            <button class="btn full-btn" style="background:#888;" onclick="closeModal()">취소</button>
+        </div>
+    </div>
 </div>
 
 <script>
     const buildings = {
-        'farrow1': { title: '분만 1동', line: 'top' },
-        'farrow2': { title: '분만 2,3동', line: 'top' },
-        'nursery': { title: '자돈사', line: 'top' },
-        'gest4': { title: '임신 4동', line: 'bottom', type: 'gestation', rows: [82, 82] },
-        'gest5': { title: '임신 5동', line: 'bottom', type: 'gestation', rows: [83, 83, 84] }
+        'farrow1': { title: '분만 1동', count: 8, line: 'top', cycle: 28, workName: '금요이유' },
+        'farrow2': { title: '분만 2,3동', count: 12, line: 'top', cycle: 28, workName: '금요이유' },
+        'nursery': { title: '자돈사', rooms: 5, perRoom: 4, line: 'top', layout: 'room', cycle: 33, workName: '화/수전출', vaccineDay: 23 },
+        'grower': { title: '육성사', rooms: 6, perRoom: 3, line: 'top', layout: 'room', cycle: 28, workName: '화/수전출', isGrower: true },
+        'gilt': { title: '후보사', count: 10, line: 'top' },
+        'mating': { title: '종부사', count: 10, line: 'top' },
+        'finisher1': { title: '비육 1동', count: 12, line: 'bottom', layout: 'lr' },
+        'finisher2': { title: '비육 2동', count: 22, line: 'bottom', layout: 'lr' },
+        'finisher3': { title: '비육 3동', count: 21, line: 'bottom' },
+        'gest4': { title: '임신 4동', count: 20, line: 'bottom' },
+        'gest5': { title: '임신 5동', count: 20, line: 'bottom' }
     };
 
-    let currentSelectedId = '';
+    let selectedKey = '';
+    const today = new Date();
+    const mon = new Date(today); mon.setDate(today.getDate() - (today.getDay() || 7) + 1); mon.setHours(0,0,0,0);
+    const sun = new Date(mon); sun.setDate(mon.getDate() + 6); sun.setHours(23,59,59,999);
 
-    function initMap() {
+    function isThisWeek(dateStr, daysToAdd) {
+        if (!dateStr) return false;
+        const d = new Date(dateStr); d.setDate(d.getDate() + daysToAdd);
+        return d >= mon && d <= sun;
+    }
+
+    function updateMain() {
         const top = document.getElementById('top-line');
-        const bottom = document.getElementById('bottom-line');
+        const bot = document.getElementById('bottom-line');
+        top.innerHTML = ''; bot.innerHTML = '';
+        let farmTotal = 0;
+
         for (let id in buildings) {
             const b = buildings[id];
+            let bTotal = 0; let hasWork = false;
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k.startsWith(id) && !k.includes('_date')) {
+                    const c = parseInt(localStorage.getItem(k)) || 0;
+                    bTotal += c; farmTotal += c;
+                    const d = localStorage.getItem(k + '_date');
+                    if (c > 0 && ((b.cycle && isThisWeek(d, b.cycle)) || (b.vaccineDay && isThisWeek(d, b.vaccineDay)))) hasWork = true;
+                }
+            }
             const div = document.createElement('div');
             div.className = 'map-building';
             div.onclick = () => openBuilding(id);
-            div.innerHTML = `<b>${b.title}</b>`;
-            (b.line === 'top' ? top : bottom).appendChild(div);
+            div.innerHTML = `${hasWork ? '<div class="work-badge">!</div>' : ''}<b>${b.title}</b><span>${bTotal}두</span>`;
+            (b.line === 'top' ? top : bot).appendChild(div);
         }
+        document.getElementById('main-summary').innerText = `농장 전체 돼지: ${farmTotal}두`;
     }
 
     function openBuilding(id) {
-        currentSelectedId = id;
         const b = buildings[id];
         const grid = document.getElementById('detail-grid');
-        const controls = document.getElementById('gest-controls');
         document.getElementById('detail-title').innerText = b.title;
         grid.innerHTML = '';
-        
-        if (b.type === 'gestation') {
-            controls.style.display = 'block';
-            grid.className = 'gest-container';
-            grid.innerHTML = '<div class="entrance-mark">⬇️ 입구 (Entrance)</div>';
-            
-            const rowWrapper = document.createElement('div');
-            rowWrapper.className = 'gest-row-wrapper';
-            
-            const groups = JSON.parse(localStorage.getItem(`groups_${id}`) || '[]');
-            renderGroupList(groups);
+        grid.className = 'grid-container';
 
-            b.rows.forEach((count, idx) => {
-                const col = document.createElement('div');
-                col.className = 'gest-column';
-                col.innerHTML = `<h4>${idx+1}열</h4>`;
-                for (let i = 1; i <= count; i++) {
-                    const stallId = (idx + 1) * 1000 + i;
-                    const stall = document.createElement('div');
-                    stall.className = 'stall';
-                    
-                    const group = groups.find(g => stallId >= g.start && stallId <= g.end);
-                    if (group) {
-                        stall.classList.add('occupied');
-                        stall.innerText = group.name.split('-').slice(1).join('-'); // 날짜(월-일)만 표시
-                    } else {
-                        stall.innerText = i;
-                    }
-                    col.appendChild(stall);
+        if (b.layout === 'room') {
+            for (let r = 1; r <= b.rooms; r++) {
+                let rTotal = 0; let rDates = []; let rWork = '';
+                for (let c = 1; c <= b.perRoom; c++) {
+                    const k = `${id}_${r}_${c}`;
+                    const count = parseInt(localStorage.getItem(k)) || 0;
+                    const d = localStorage.getItem(k + '_date');
+                    rTotal += count; if(d) rDates.push(d);
+                    if (count > 0 && isThisWeek(d, b.cycle)) rWork = b.workName;
+                    if (count > 0 && b.vaccineDay && isThisWeek(d, b.vaccineDay)) rWork = '백신';
                 }
-                rowWrapper.appendChild(col);
-            });
-            grid.appendChild(rowWrapper);
+                const head = document.createElement('div');
+                head.className = 'room-header' + (rWork ? ' active-work' : '');
+                head.innerHTML = `
+                    <div class="room-title-area">
+                        <div class="room-title">${r}번 방 ${rWork ? `<span style="color:var(--accent)">[${rWork}]</span>` : ''}</div>
+                        <div style="font-size:0.65rem; color:#666;">입식: ${[...new Set(rDates)].join(', ') || '날짜없음'}</div>
+                    </div>
+                    <button class="room-total-btn" onclick="batchRoom('${id}',${r},${b.perRoom})">방 총합: ${rTotal}두</button>
+                `;
+                grid.appendChild(head);
+                for (let c = 1; c <= b.perRoom; c++) {
+                    createCell(grid, `${id}_${r}_${c}`, b.isGrower ? `${(c*2)-1}-${c*2}번` : `${c}번`, b);
+                }
+            }
         } else {
-            controls.style.display = 'none';
-            grid.innerHTML = '<p style="text-align:center; padding:50px; color:#999;">준비 중인 동입니다.</p>';
+            for (let i = 1; i <= b.count; i++) {
+                createCell(grid, `${id}_${i}`, i + '번', b);
+            }
         }
         document.getElementById('detail-view').style.display = 'block';
     }
 
-    function addGroup() {
-        const id = currentSelectedId;
-        const dateStr = prompt("교배 일요일 날짜 (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
-        if (!dateStr) return;
+    function createCell(parent, key, label, b) {
+        const count = parseInt(localStorage.getItem(key)) || 0;
+        const date = localStorage.getItem(key + '_date');
+        const div = document.createElement('div');
+        div.className = 'cell' + (count > 0 ? ' has-pigs' : '');
         
-        const row = prompt("해당 줄 번호 입력 (예: 1):");
-        const start = prompt("시작 스톨 번호:");
-        const end = prompt("종료 스톨 번호:");
-        
-        if (row && start && end) {
-            const groups = JSON.parse(localStorage.getItem(`groups_${id}`) || '[]');
-            const rowBase = parseInt(row) * 1000;
-            groups.push({
-                id: Date.now(),
-                name: dateStr,
-                start: rowBase + parseInt(start),
-                end: rowBase + parseInt(end),
-                display: `${row}열 ${start}~${end}`
-            });
-            localStorage.setItem(`groups_${id}`, JSON.stringify(groups));
-            openBuilding(id);
+        let subInfo = '';
+        if (count > 0 && date) {
+            if (b.vaccineDay && isThisWeek(date, b.vaccineDay)) div.innerHTML += '<div class="vaccine-tag">💉백신</div>';
+            if (b.cycle && isThisWeek(date, b.cycle)) div.classList.add('work-target');
+            const target = new Date(date); target.setDate(target.getDate() + (b.cycle || 0));
+            subInfo = `<div class="date-info">${target.getMonth()+1}/${target.getDate()} 이동</div>`;
         }
+        
+        div.innerHTML += `<span>${label}</span><b>${count}</b>${subInfo}`;
+        div.onclick = () => openModal(key, label, count, date, b);
+        parent.appendChild(div);
     }
 
-    function deleteGroup(groupId) {
-        if(!confirm("이 그룹을 삭제하시겠습니까?")) return;
-        let groups = JSON.parse(localStorage.getItem(`groups_${currentSelectedId}`) || '[]');
-        groups = groups.filter(g => g.id !== groupId);
-        localStorage.setItem(`groups_${currentSelectedId}`, JSON.stringify(groups));
-        openBuilding(currentSelectedId);
+    function batchRoom(id, r, per) {
+        const total = prompt(`${r}번 방 전체 마릿수를 입력하세요:`);
+        if (total === null) return;
+        const date = prompt(`방 전체 입식/이유 날짜 (YYYY-MM-DD):`, today.toISOString().split('T')[0]);
+        const each = Math.floor(total / per);
+        const rem = total % per;
+        for (let c = 1; c <= per; c++) {
+            localStorage.setItem(`${id}_${r}_${c}`, each + (c === 1 ? rem : 0));
+            if (date) localStorage.setItem(`${id}_${r}_${c}_date`, date);
+        }
+        openBuilding(id); updateMain();
     }
 
-    function renderGroupList(groups) {
-        const listDiv = document.getElementById('group-list');
-        listDiv.innerHTML = groups.map(g => `
-            <div class="group-item">
-                <span>📅 ${g.name} (${g.display})</span>
-                <button class="del-btn" onclick="deleteGroup(${g.id})">삭제</button>
-            </div>
-        `).join('');
+    function openModal(key, label, count, date, b) {
+        selectedKey = key;
+        document.getElementById('modal-label').innerText = label + " 관리";
+        let info = `현재 마릿수: <b>${count}두</b><br>입식/이유 날짜: ${date || '미등록'}`;
+        if (date && b.cycle) {
+            const d = new Date(date); d.setDate(d.getDate() + b.cycle);
+            info += `<br><b>다음 이동예정: ${d.toLocaleDateString()}</b>`;
+        }
+        document.getElementById('modal-info').innerHTML = info;
+        document.getElementById('modal-overlay').style.display = 'block';
     }
 
-    function closeBuilding() {
-        document.getElementById('detail-view').style.display = 'none';
-    }
+    function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+    function closeBuilding() { document.getElementById('detail-view').style.display = 'none'; updateMain(); }
 
-    window.onload = initMap;
-</script>
-</body>
-</html>
+    function changeCount(n) {
+        const cur = parseInt(localStorage.getItem(selectedKey)) || 0;
+        localStorage.setItem(selectedKey, Math.max(0, cur + n));
+        refreshAfterAction();
+    }
+    function promptCount() {
+        const n = prompt("정확한 마릿수를 입력하세요:");
+        if (n !== null) { localStorage.setItem
