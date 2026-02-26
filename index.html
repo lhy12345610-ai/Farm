@@ -34,15 +34,19 @@
         .cell { aspect-ratio: 1/1.1; border: 1.5px solid #eee; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff; position: relative; }
         .cell b { font-size: 1.1rem; }
         .date-info { font-size: 0.55rem; color: #555; text-align: center; margin-top: 2px; }
-        .vaccine-alert::after { content: "💉백신"; position: absolute; top: -5px; right: -5px; background: var(--vaccine); color: white; font-size: 0.55rem; padding: 2px 4px; border-radius: 4px; font-weight: bold; }
+        
+        /* 백신 알림 스타일 수정 */
+        .vaccine-alert::after { 
+            content: attr(data-vaccine); 
+            position: absolute; top: -5px; right: -5px; background: var(--vaccine); 
+            color: white; font-size: 0.55rem; padding: 2px 4px; border-radius: 4px; font-weight: bold; 
+        }
 
-        /* 임신사 전용 스타일 */
         .entrance-bar { grid-column: 1 / -1; background: #444; color: white; text-align: center; padding: 8px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8rem; }
         .gest-column { display: flex; flex-direction: column; gap: 10px; background: #f1f3f5; padding: 10px; border-radius: 10px; }
         .group-card { background: white; padding: 8px; border-radius: 6px; border-left: 4px solid var(--work); box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-size: 0.75rem; margin-bottom: 5px; position: relative; }
         .group-del { position: absolute; top: 5px; right: 5px; color: #ccc; font-size: 12px; cursor: pointer; }
 
-        /* 후보사 전용 스타일 (추가됨) */
         .gilt-group-pen { grid-column: 1 / -1; background: #e8f5e9; border: 2px dashed var(--green); border-radius: 12px; padding: 15px; margin-bottom: 15px; text-align: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .gilt-group-pen h3 { margin: 0 0 10px 0; color: var(--green); font-size: 1rem; }
         .gilt-group-pen p { margin: 4px 0; font-size: 0.85rem; color: #333; }
@@ -83,7 +87,6 @@
         'farrow2': { title: '분만 2,3동', count: 12, line: 'top', cycle: 28, workDay: 5, workName: '금요이유' },
         'nursery': { title: '자돈사', rooms: 5, perRoom: 4, line: 'top', layout: 'room', cycle: 33, workDay: 2, workName: '화/수전출', vaccineDay: 23 },
         'grower': { title: '육성사', rooms: 6, perRoom: 3, line: 'top', layout: 'room', cycle: 28, workDay: 2, workName: '화/수전출', isGrower: true },
-        // 후보사 설정 변경됨: count를 46으로 늘리고, layout을 'giltSpecial'로 지정
         'gilt': { title: '후보사', count: 46, line: 'top', layout: 'giltSpecial' },
         'mating': { title: '종부사', count: 10, line: 'top' },
         'finisher1': { title: '비육 1동', count: 12, line: 'bottom', layout: 'lr' },
@@ -137,9 +140,18 @@
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
                     if (key.startsWith(id) && !key.includes('_date') && !key.includes('_vaccine')) {
-                        total += parseInt(localStorage.getItem(key)) || 0;
-                        if (b.cycle && checkWorkThisWeek(localStorage.getItem(key + '_date'), b.cycle)) hasWork = true;
-                        if (b.vaccineDay && checkWorkThisWeek(localStorage.getItem(key + '_date'), b.vaccineDay)) hasWork = true;
+                        const val = parseInt(localStorage.getItem(key)) || 0;
+                        if (val > 0) {
+                            total += val;
+                            const d = localStorage.getItem(key + '_date');
+                            if (b.cycle && checkWorkThisWeek(d, b.cycle)) hasWork = true;
+                            if (b.vaccineDay && checkWorkThisWeek(d, b.vaccineDay)) hasWork = true;
+                            // 육성사 특화 백신 메인 지도 알림
+                            if (b.isGrower) {
+                                if (checkWorkThisWeek(d, 7)) hasWork = true;
+                                if (checkWorkThisWeek(d, b.cycle - 7)) hasWork = true;
+                            }
+                        }
                     }
                 }
             }
@@ -157,14 +169,12 @@
         if (b.layout === 'gestSpecial') {
             grid.style.gridTemplateColumns = `repeat(${b.rows.length}, 1fr)`;
             grid.innerHTML = `<div class="entrance-bar">▼ 건물 입구 (1번 스톨 시작) ▼</div>`;
-            
             b.rows.forEach((maxStall, idx) => {
                 const rowNum = idx + 1;
                 const col = document.createElement('div');
                 col.className = 'gest-column';
                 col.innerHTML = `<div style="text-align:center; font-weight:bold; font-size:0.8rem; margin-bottom:5px;">${rowNum}열 (1~${maxStall}번)</div>
                                  <button class="room-total-input" style="width:100%; margin-bottom:10px;" onclick="setStallRange('${id}', ${rowNum}, ${maxStall})">범위 추가</button>`;
-                
                 const groups = JSON.parse(localStorage.getItem(`${id}_row${rowNum}_groups`) || "[]");
                 groups.sort((a,b) => a.start - b.start).forEach((g, gIdx) => {
                     const fDate = new Date(g.date); fDate.setDate(fDate.getDate() + 114);
@@ -180,26 +190,15 @@
                 grid.appendChild(col);
             });
         } else if (b.layout === 'giltSpecial') {
-            // 후보사 전용 레이아웃 추가됨
-            grid.style.gridTemplateColumns = 'repeat(2, 1fr)'; // 좌/우 2열 고정
-
+            grid.style.gridTemplateColumns = 'repeat(2, 1fr)';
             const gCount = localStorage.getItem(`${id}_group_count`) || 0;
             const gDate = localStorage.getItem(`${id}_group_date`) || '-';
             const gVaccine = localStorage.getItem(`${id}_group_vaccine`) || '없음';
-
             const groupPen = document.createElement('div');
             groupPen.className = 'gilt-group-pen';
-            groupPen.innerHTML = `
-                <h3>👑 후보사 군사칸</h3>
-                <p><b>입식일자:</b> ${gDate}</p>
-                <p><b>마릿수:</b> ${gCount}두</p>
-                <p><b>백신종류:</b> ${gVaccine}</p>
-                <div style="font-size:0.75rem; color:#666; margin-top:8px;">(터치하여 정보 수정)</div>
-            `;
+            groupPen.innerHTML = `<h3>👑 후보사 군사칸</h3><p><b>입식일자:</b> ${gDate}</p><p><b>마릿수:</b> ${gCount}두</p><p><b>백신종류:</b> ${gVaccine}</p><div style="font-size:0.75rem; color:#666; margin-top:8px;">(터치하여 정보 수정)</div>`;
             groupPen.onclick = () => editGiltGroup(id);
             grid.appendChild(groupPen);
-
-            // 46개 스톨 좌/우 렌더링
             for (let i = 1; i <= b.count; i++) {
                 const label = (i % 2 === 1 ? '좌' : '우') + Math.ceil(i / 2);
                 createCell(grid, `${id}_${i}`, label, null, null);
@@ -211,18 +210,26 @@
                 for(let c=1; c<=b.perRoom; c++) {
                     const count = parseInt(localStorage.getItem(`${id}_${r}_${c}`)) || 0;
                     const d = localStorage.getItem(`${id}_${r}_${c}_date`);
-                    roomTotal += count;
-                    if(d) {
-                        roomDates.push(d);
-                        if(checkWorkThisWeek(d, b.cycle)) { roomHasWork = true; workType = b.workName; }
-                        if(b.vaccineDay && checkWorkThisWeek(d, b.vaccineDay)) { roomHasWork = true; workType = "백신"; }
+                    if (count > 0) {
+                        roomTotal += count;
+                        if(d) {
+                            roomDates.push(d);
+                            if(checkWorkThisWeek(d, b.cycle)) { roomHasWork = true; workType = b.workName; }
+                            // 육성사 전용 로직
+                            if(b.isGrower) {
+                                if(checkWorkThisWeek(d, 7)) { roomHasWork = true; workType = "흉막백신"; }
+                                if(checkWorkThisWeek(d, b.cycle - 7)) { roomHasWork = true; workType = "구제역"; }
+                            } else if(b.vaccineDay && checkWorkThisWeek(d, b.vaccineDay)) { 
+                                roomHasWork = true; workType = "백신"; 
+                            }
+                        }
                     }
                 }
                 const header = document.createElement('div');
                 header.className = 'room-header' + (roomHasWork ? ' this-week' : '');
                 header.innerHTML = `<div class="room-title-area"><div class="room-title">${r}번 방 ${roomHasWork ? '['+workType+']' : ''}</div><div style="font-size:0.65rem; color:#666;">입식: ${[...new Set(roomDates)].join(', ') || '없음'}</div></div><button class="room-total-input" onclick="batchSetRoom('${id}', ${r}, ${b.perRoom})">총 ${roomTotal}두</button>`;
                 grid.appendChild(header);
-                for (let c = 1; c <= b.perRoom; c++) createCell(grid, `${id}_${r}_${c}`, b.isGrower ? `${(c*2)-1}-${c*2}번` : `${c}번`, b.vaccineDay, b.cycle);
+                for (let c = 1; c <= b.perRoom; c++) createCell(grid, `${id}_${r}_${c}`, b.isGrower ? `${(c*2)-1}-${c*2}번` : `${c}번`, b.vaccineDay, b.cycle, b.isGrower);
             }
         } else {
             grid.style.gridTemplateColumns = b.layout === 'lr' ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(85px, 1fr))';
@@ -231,37 +238,33 @@
         document.getElementById('detail-view').style.display = 'block';
     }
 
-    // 후보사 군사칸 정보 수정 함수
-    function editGiltGroup(id) {
-        const currentCount = localStorage.getItem(`${id}_group_count`) || 0;
-        const currentDate = localStorage.getItem(`${id}_group_date`) || today.toISOString().split('T')[0];
-        const currentVaccine = localStorage.getItem(`${id}_group_vaccine`) || '';
-
-        const newDate = prompt("입식일자를 입력하세요 (YYYY-MM-DD):", currentDate);
-        if (newDate === null) return;
-        const newCount = prompt("군사칸 마릿수를 입력하세요:", currentCount);
-        if (newCount === null) return;
-        const newVaccine = prompt("접종한 백신종류를 입력하세요 (예: PRRS, 써코 등):", currentVaccine);
-        if (newVaccine === null) return;
-
-        localStorage.setItem(`${id}_group_count`, parseInt(newCount) || 0);
-        localStorage.setItem(`${id}_group_date`, newDate);
-        localStorage.setItem(`${id}_group_vaccine`, newVaccine);
-
-        openBuilding(id);
-        initMap();
-    }
-
-    function createCell(parent, key, label, vDay, cycle) {
+    function createCell(parent, key, label, vDay, cycle, isGrower = false) {
         const val = parseInt(localStorage.getItem(key)) || 0;
         const inDateStr = localStorage.getItem(key + '_date');
         const b = buildings[key.split('_')[0]];
         const div = document.createElement('div');
         div.className = 'cell ' + (val == 0 ? '' : 'active');
+        
         if (inDateStr && val > 0) {
             const inDate = new Date(inDateStr);
-            if (vDay && checkWorkThisWeek(inDateStr, vDay)) div.classList.add('vaccine-alert');
-            const target = new Date(inDate); target.setDate(inDate.getDate() + (cycle || 0));
+            let hasVaccine = false;
+            let vaccineName = "💉백신";
+
+            // 육성사 특화 백신 알림 체크
+            if (isGrower) {
+                if (checkWorkThisWeek(inDateStr, 7)) { hasVaccine = true; vaccineName = "💉흉막"; }
+                else if (checkWorkThisWeek(inDateStr, cycle - 7)) { hasVaccine = true; vaccineName = "💉구제역"; }
+            } else if (vDay && checkWorkThisWeek(inDateStr, vDay)) {
+                hasVaccine = true;
+            }
+
+            if (hasVaccine) {
+                div.classList.add('vaccine-alert');
+                div.setAttribute('data-vaccine', vaccineName);
+            }
+
+            const target = new Date(inDate); 
+            target.setDate(inDate.getDate() + (cycle || 0));
             if (cycle && checkWorkThisWeek(inDateStr, cycle)) div.style.borderColor = b.isGest ? "var(--red)" : "var(--work)";
             div.innerHTML = `<span>${label}</span><b>${val}</b><div class="date-info">${b.isGest ? '분만' : '예정'}:${target.getMonth()+1}/${target.getDate()}</div>`;
         } else {
@@ -269,6 +272,23 @@
         }
         div.onclick = () => openModal(key, label, val, inDateStr);
         parent.appendChild(div);
+    }
+
+    function editGiltGroup(id) {
+        const currentCount = localStorage.getItem(`${id}_group_count`) || 0;
+        const currentDate = localStorage.getItem(`${id}_group_date`) || today.toISOString().split('T')[0];
+        const currentVaccine = localStorage.getItem(`${id}_group_vaccine`) || '';
+        const newDate = prompt("입식일자를 입력하세요 (YYYY-MM-DD):", currentDate);
+        if (newDate === null) return;
+        const newCount = prompt("군사칸 마릿수를 입력하세요:", currentCount);
+        if (newCount === null) return;
+        const newVaccine = prompt("접종한 백신종류를 입력하세요 (예: PRRS, 써코 등):", currentVaccine);
+        if (newVaccine === null) return;
+        localStorage.setItem(`${id}_group_count`, parseInt(newCount) || 0);
+        localStorage.setItem(`${id}_group_date`, newDate);
+        localStorage.setItem(`${id}_group_vaccine`, newVaccine);
+        openBuilding(id);
+        initMap();
     }
 
     function setStallRange(id, rowNum, max) {
