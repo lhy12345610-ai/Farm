@@ -35,22 +35,15 @@
         .cell b { font-size: 1.1rem; }
         .date-info { font-size: 0.55rem; color: #555; text-align: center; margin-top: 2px; }
         
-        /* 백신 알림 스타일 수정 */
-        .vaccine-alert::after { 
-            content: attr(data-vaccine); 
-            position: absolute; top: -5px; right: -5px; background: var(--vaccine); 
-            color: white; font-size: 0.55rem; padding: 2px 4px; border-radius: 4px; font-weight: bold; 
-        }
+        .vaccine-alert::after { content: attr(data-vaccine); position: absolute; top: -5px; right: -5px; background: var(--vaccine); color: white; font-size: 0.55rem; padding: 2px 4px; border-radius: 4px; font-weight: bold; }
 
         .entrance-bar { grid-column: 1 / -1; background: #444; color: white; text-align: center; padding: 8px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8rem; }
         .gest-column { display: flex; flex-direction: column; gap: 10px; background: #f1f3f5; padding: 10px; border-radius: 10px; }
-        .group-card { background: white; padding: 8px; border-radius: 6px; border-left: 4px solid var(--work); box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-size: 0.75rem; margin-bottom: 5px; position: relative; }
-        .group-del { position: absolute; top: 5px; right: 5px; color: #ccc; font-size: 12px; cursor: pointer; }
+        .group-card { background: white; padding: 10px; border-radius: 8px; border-left: 5px solid var(--work); box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-size: 0.8rem; cursor: pointer; position: relative; }
+        .group-card:active { background: #eee; }
 
-        .gilt-group-pen { grid-column: 1 / -1; background: #e8f5e9; border: 2px dashed var(--green); border-radius: 12px; padding: 15px; margin-bottom: 15px; text-align: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .gilt-group-pen h3 { margin: 0 0 10px 0; color: var(--green); font-size: 1rem; }
-        .gilt-group-pen p { margin: 4px 0; font-size: 0.85rem; color: #333; }
-
+        .gilt-group-pen { grid-column: 1 / -1; background: #e8f5e9; border: 2px dashed var(--green); border-radius: 12px; padding: 15px; margin-bottom: 15px; text-align: center; cursor: pointer; }
+        
         #action-modal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: white; border-radius: 20px 20px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.2); z-index: 200; padding: 25px 20px; box-sizing: border-box; }
         .btn-group { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 15px; }
         .btn { padding: 15px; border: none; border-radius: 12px; font-weight: bold; font-size: 1rem; color: white; cursor: pointer; }
@@ -72,13 +65,8 @@
 <div id="action-modal">
     <h3 id="modal-title" style="margin:0;">칸 관리</h3>
     <div id="modal-sub-info" style="font-size: 0.9rem; margin: 10px 0; color: #444; background: #f8f9fa; padding: 10px; border-radius: 8px;"></div>
-    <div class="btn-group">
-        <button id="btn-edit" class="btn" style="background:var(--blue); grid-column: span 2;" onclick="manualEdit()">⌨️ 마릿수 직접 입력</button>
-        <button id="btn-plus" class="btn" style="background:var(--green);" onclick="adjustCount(1)">+1 입식</button>
-        <button id="btn-minus" class="btn" style="background:var(--red);" onclick="adjustCount(-1)">-1 폐사</button>
-        <button id="btn-date" class="btn" style="background:var(--work); grid-column: span 2;" onclick="setInDate()">📅 날짜 설정</button>
-        <button class="btn" style="background:#888; grid-column: span 2;" onclick="closeModal()">닫기</button>
-    </div>
+    <div class="btn-group" id="modal-buttons">
+        </div>
 </div>
 
 <script>
@@ -134,28 +122,27 @@
             if (b.layout === 'gestSpecial') {
                 for(let r=1; r<=b.rows.length; r++){
                     const groups = JSON.parse(localStorage.getItem(`${id}_row${r}_groups`) || "[]");
-                    groups.forEach(g => { if(checkWorkThisWeek(g.date, b.cycle)) hasWork = true; });
+                    groups.forEach(g => { 
+                        total += (parseInt(g.count) || 0);
+                        if(checkWorkThisWeek(g.date, b.cycle)) hasWork = true; 
+                    });
                 }
             } else {
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    if (key.startsWith(id) && !key.includes('_date') && !key.includes('_vaccine')) {
+                    if (key.startsWith(id) && !key.includes('_date') && !key.includes('_vaccine') && !key.includes('_row') && !key.includes('_group')) {
                         const val = parseInt(localStorage.getItem(key)) || 0;
                         if (val > 0) {
                             total += val;
                             const d = localStorage.getItem(key + '_date');
                             if (b.cycle && checkWorkThisWeek(d, b.cycle)) hasWork = true;
-                            if (b.vaccineDay && checkWorkThisWeek(d, b.vaccineDay)) hasWork = true;
-                            // 육성사 특화 백신 메인 지도 알림
-                            if (b.isGrower) {
-                                if (checkWorkThisWeek(d, 7)) hasWork = true;
-                                if (checkWorkThisWeek(d, b.cycle - 7)) hasWork = true;
-                            }
+                            if (b.isGrower && (checkWorkThisWeek(d, 7) || checkWorkThisWeek(d, b.cycle - 7))) hasWork = true;
                         }
                     }
                 }
+                if(id === 'gilt') total = parseInt(localStorage.getItem('gilt_group_count')) || 0;
             }
-            div.innerHTML = `${hasWork ? '<div class="work-badge">!</div>' : ''}<b>${b.title}</b><span>${b.layout === 'gestSpecial' ? '관리중' : total + '두'}</span>`;
+            div.innerHTML = `${hasWork ? '<div class="work-badge">!</div>' : ''}<b>${b.title}</b><span>${total}두</span>`;
             (b.line === 'top' ? top : bottom).appendChild(div);
         }
     }
@@ -173,7 +160,7 @@
                 const rowNum = idx + 1;
                 const col = document.createElement('div');
                 col.className = 'gest-column';
-                col.innerHTML = `<div style="text-align:center; font-weight:bold; font-size:0.8rem; margin-bottom:5px;">${rowNum}열 (1~${maxStall}번)</div>
+                col.innerHTML = `<div style="text-align:center; font-weight:bold; font-size:0.8rem; margin-bottom:5px;">${rowNum}열 (1~${maxStall})</div>
                                  <button class="room-total-input" style="width:100%; margin-bottom:10px;" onclick="setStallRange('${id}', ${rowNum}, ${maxStall})">범위 추가</button>`;
                 const groups = JSON.parse(localStorage.getItem(`${id}_row${rowNum}_groups`) || "[]");
                 groups.sort((a,b) => a.start - b.start).forEach((g, gIdx) => {
@@ -181,10 +168,10 @@
                     const card = document.createElement('div');
                     card.className = 'group-card';
                     if(checkWorkThisWeek(g.date, 114)) card.style.backgroundColor = "#fff3e0";
-                    card.innerHTML = `<span class="group-del" onclick="deleteGroup('${id}', ${rowNum}, ${gIdx})">✖</span>
-                                      <b>${g.start}~${g.end}번</b><br>
+                    card.innerHTML = `<b>${g.start}~${g.end}번 (${g.count || 0}두)</b><br>
                                       <span style="color:var(--work)">${g.name}</span><br>
                                       <small>분만예정: ${fDate.getMonth()+1}/${fDate.getDate()}</small>`;
+                    card.onclick = (e) => { e.stopPropagation(); openGestModal(id, rowNum, gIdx); };
                     col.appendChild(card);
                 });
                 grid.appendChild(col);
@@ -196,7 +183,7 @@
             const gVaccine = localStorage.getItem(`${id}_group_vaccine`) || '없음';
             const groupPen = document.createElement('div');
             groupPen.className = 'gilt-group-pen';
-            groupPen.innerHTML = `<h3>👑 후보사 군사칸</h3><p><b>입식일자:</b> ${gDate}</p><p><b>마릿수:</b> ${gCount}두</p><p><b>백신종류:</b> ${gVaccine}</p><div style="font-size:0.75rem; color:#666; margin-top:8px;">(터치하여 정보 수정)</div>`;
+            groupPen.innerHTML = `<h3>👑 후보사 군사칸</h3><p><b>입식일자:</b> ${gDate}</p><p><b>마릿수:</b> ${gCount}두</p><p><b>백신종류:</b> ${gVaccine}</p>`;
             groupPen.onclick = () => editGiltGroup(id);
             grid.appendChild(groupPen);
             for (let i = 1; i <= b.count; i++) {
@@ -215,12 +202,9 @@
                         if(d) {
                             roomDates.push(d);
                             if(checkWorkThisWeek(d, b.cycle)) { roomHasWork = true; workType = b.workName; }
-                            // 육성사 전용 로직
                             if(b.isGrower) {
                                 if(checkWorkThisWeek(d, 7)) { roomHasWork = true; workType = "흉막백신"; }
                                 if(checkWorkThisWeek(d, b.cycle - 7)) { roomHasWork = true; workType = "구제역"; }
-                            } else if(b.vaccineDay && checkWorkThisWeek(d, b.vaccineDay)) { 
-                                roomHasWork = true; workType = "백신"; 
                             }
                         }
                     }
@@ -238,84 +222,66 @@
         document.getElementById('detail-view').style.display = 'block';
     }
 
-    function createCell(parent, key, label, vDay, cycle, isGrower = false) {
-        const val = parseInt(localStorage.getItem(key)) || 0;
-        const inDateStr = localStorage.getItem(key + '_date');
-        const b = buildings[key.split('_')[0]];
-        const div = document.createElement('div');
-        div.className = 'cell ' + (val == 0 ? '' : 'active');
+    // 임신사 전용 그룹 편집 모달
+    function openGestModal(id, rowNum, gIdx) {
+        const groups = JSON.parse(localStorage.getItem(`${id}_row${rowNum}_groups`) || "[]");
+        const g = groups[gIdx];
+        document.getElementById('modal-title').innerText = `${rowNum}열 ${g.start}~${g.end}번 그룹`;
+        document.getElementById('modal-sub-info').innerHTML = `마릿수: <b>${g.count || 0}두</b><br>교배일: ${g.date}<br>그룹명: ${g.name}`;
         
-        if (inDateStr && val > 0) {
-            const inDate = new Date(inDateStr);
-            let hasVaccine = false;
-            let vaccineName = "💉백신";
-
-            // 육성사 특화 백신 알림 체크
-            if (isGrower) {
-                if (checkWorkThisWeek(inDateStr, 7)) { hasVaccine = true; vaccineName = "💉흉막"; }
-                else if (checkWorkThisWeek(inDateStr, cycle - 7)) { hasVaccine = true; vaccineName = "💉구제역"; }
-            } else if (vDay && checkWorkThisWeek(inDateStr, vDay)) {
-                hasVaccine = true;
-            }
-
-            if (hasVaccine) {
-                div.classList.add('vaccine-alert');
-                div.setAttribute('data-vaccine', vaccineName);
-            }
-
-            const target = new Date(inDate); 
-            target.setDate(inDate.getDate() + (cycle || 0));
-            if (cycle && checkWorkThisWeek(inDateStr, cycle)) div.style.borderColor = b.isGest ? "var(--red)" : "var(--work)";
-            div.innerHTML = `<span>${label}</span><b>${val}</b><div class="date-info">${b.isGest ? '분만' : '예정'}:${target.getMonth()+1}/${target.getDate()}</div>`;
-        } else {
-            div.innerHTML = `<span>${label}</span><b>${val}</b>`;
-        }
-        div.onclick = () => openModal(key, label, val, inDateStr);
-        parent.appendChild(div);
+        const btnArea = document.getElementById('modal-buttons');
+        btnArea.innerHTML = `
+            <button class="btn" style="background:var(--blue); grid-column: span 2;" onclick="editGestGroup('${id}', ${rowNum}, ${gIdx})">📝 정보 수정</button>
+            <button class="btn" style="background:var(--red); grid-column: span 2;" onclick="deleteGestGroup('${id}', ${rowNum}, ${gIdx})">🗑️ 그룹 삭제</button>
+            <button class="btn" style="background:#888; grid-column: span 2;" onclick="closeModal()">닫기</button>
+        `;
+        document.getElementById('action-modal').style.display = 'block';
     }
 
-    function editGiltGroup(id) {
-        const currentCount = localStorage.getItem(`${id}_group_count`) || 0;
-        const currentDate = localStorage.getItem(`${id}_group_date`) || today.toISOString().split('T')[0];
-        const currentVaccine = localStorage.getItem(`${id}_group_vaccine`) || '';
-        const newDate = prompt("입식일자를 입력하세요 (YYYY-MM-DD):", currentDate);
-        if (newDate === null) return;
-        const newCount = prompt("군사칸 마릿수를 입력하세요:", currentCount);
+    function editGestGroup(id, rowNum, gIdx) {
+        const groups = JSON.parse(localStorage.getItem(`${id}_row${rowNum}_groups`) || "[]");
+        const g = groups[gIdx];
+        const newCount = prompt("총 몇 마리입니까?", g.count || 0);
         if (newCount === null) return;
-        const newVaccine = prompt("접종한 백신종류를 입력하세요 (예: PRRS, 써코 등):", currentVaccine);
-        if (newVaccine === null) return;
-        localStorage.setItem(`${id}_group_count`, parseInt(newCount) || 0);
-        localStorage.setItem(`${id}_group_date`, newDate);
-        localStorage.setItem(`${id}_group_vaccine`, newVaccine);
-        openBuilding(id);
-        initMap();
+        const newDate = prompt("교배일을 입력하세요 (YYYY-MM-DD)", g.date);
+        if (newDate === null) return;
+        
+        g.count = parseInt(newCount);
+        g.date = newDate;
+        g.name = getGroupName(newDate);
+        
+        localStorage.setItem(`${id}_row${rowNum}_groups`, JSON.stringify(groups));
+        closeModal(); openBuilding(id); initMap();
+    }
+
+    function deleteGestGroup(id, rowNum, gIdx) {
+        if(confirm("정말 삭제하시겠습니까?")) {
+            const groups = JSON.parse(localStorage.getItem(`${id}_row${rowNum}_groups`) || "[]");
+            groups.splice(gIdx, 1);
+            localStorage.setItem(`${id}_row${rowNum}_groups`, JSON.stringify(groups));
+            closeModal(); openBuilding(id); initMap();
+        }
     }
 
     function setStallRange(id, rowNum, max) {
-        const start = prompt(`${rowNum}열: 시작 스톨 (1~${max})`);
-        const end = prompt(`${rowNum}열: 끝 스톨 (${start}~${max})`);
+        const start = prompt(`${rowNum}열: 시작 스톨 번호`);
+        if (!start) return;
+        const end = prompt(`${rowNum}열: 끝 스톨 번호`);
+        if (!end) return;
+        const count = prompt(`해당 범위 총 몇 마리입니까?`);
+        if (!count) return;
         const date = prompt(`교배일 입력 (YYYY-MM-DD)`, today.toISOString().split('T')[0]);
-        if (start && end && date) {
+        if (date) {
             const rangeKey = `${id}_row${rowNum}_groups`;
             let groups = JSON.parse(localStorage.getItem(rangeKey) || "[]");
-            groups.push({ start: parseInt(start), end: parseInt(end), date: date, name: getGroupName(date) });
+            groups.push({ start: parseInt(start), end: parseInt(end), count: parseInt(count), date: date, name: getGroupName(date) });
             localStorage.setItem(rangeKey, JSON.stringify(groups));
             openBuilding(id);
             initMap();
         }
     }
 
-    function deleteGroup(id, rowNum, gIdx) {
-        if(confirm("이 그룹을 삭제하시겠습니까?")) {
-            const rangeKey = `${id}_row${rowNum}_groups`;
-            let groups = JSON.parse(localStorage.getItem(rangeKey) || "[]");
-            groups.splice(gIdx, 1);
-            localStorage.setItem(rangeKey, JSON.stringify(groups));
-            openBuilding(id);
-            initMap();
-        }
-    }
-
+    // 일반사 모달 (기존 로직 유지)
     function openModal(key, label, count, inDateStr) {
         currentSelectedKey = key;
         const b = buildings[key.split('_')[0]];
@@ -324,13 +290,53 @@
         if (inDateStr) {
             const inDate = new Date(inDateStr);
             const moveDate = new Date(inDate); moveDate.setDate(inDate.getDate() + (b.cycle || 0));
-            info += `<br>${b.isGest ? '교배일' : '입식일'}: ${inDateStr}<br><b>${b.isGest ? '분만예정' : '이동예정'}: ${moveDate.toLocaleDateString()}</b>`;
+            info += `<br>입식일: ${inDateStr}<br><b>예정일: ${moveDate.toLocaleDateString()}</b>`;
         }
-        document.getElementById('btn-date').innerText = b.isGest ? "💘 교배일 설정" : "📅 날짜 설정";
         document.getElementById('modal-sub-info').innerHTML = info;
+        
+        const btnArea = document.getElementById('modal-buttons');
+        btnArea.innerHTML = `
+            <button class="btn" style="background:var(--blue); grid-column: span 2;" onclick="manualEdit()">⌨️ 마릿수 직접 입력</button>
+            <button class="btn" style="background:var(--green);" onclick="adjustCount(1)">+1 입식</button>
+            <button class="btn" style="background:var(--red);" onclick="adjustCount(-1)">-1 폐사</button>
+            <button class="btn" style="background:var(--work); grid-column: span 2;" onclick="setInDate()">📅 날짜 설정</button>
+            <button class="btn" style="background:#888; grid-column: span 2;" onclick="closeModal()">닫기</button>
+        `;
         document.getElementById('action-modal').style.display = 'block';
     }
 
+    function createCell(parent, key, label, vDay, cycle, isGrower = false) {
+        const val = parseInt(localStorage.getItem(key)) || 0;
+        const inDateStr = localStorage.getItem(key + '_date');
+        const div = document.createElement('div');
+        div.className = 'cell ' + (val == 0 ? '' : 'active');
+        if (inDateStr && val > 0) {
+            let vaccineName = "💉백신"; let hasVaccine = false;
+            if (isGrower) {
+                if (checkWorkThisWeek(inDateStr, 7)) { hasVaccine = true; vaccineName = "💉흉막"; }
+                else if (checkWorkThisWeek(inDateStr, cycle - 7)) { hasVaccine = true; vaccineName = "💉구제역"; }
+            }
+            if (hasVaccine) { div.classList.add('vaccine-alert'); div.setAttribute('data-vaccine', vaccineName); }
+            const target = new Date(inDateStr); target.setDate(target.getDate() + (cycle || 0));
+            div.innerHTML = `<span>${label}</span><b>${val}</b><div class="date-info">예정:${target.getMonth()+1}/${target.getDate()}</div>`;
+        } else { div.innerHTML = `<span>${label}</span><b>${val}</b>`; }
+        div.onclick = () => openModal(key, label, val, inDateStr);
+        parent.appendChild(div);
+    }
+
+    // 나머지 공통 함수들 (수정 없음)
+    function editGiltGroup(id) {
+        const currentCount = localStorage.getItem(`${id}_group_count`) || 0;
+        const currentDate = localStorage.getItem(`${id}_group_date`) || today.toISOString().split('T')[0];
+        const currentVaccine = localStorage.getItem(`${id}_group_vaccine`) || '';
+        const newDate = prompt("입식일자 (YYYY-MM-DD):", currentDate); if (newDate === null) return;
+        const newCount = prompt("군사칸 마릿수:", currentCount); if (newCount === null) return;
+        const newVaccine = prompt("백신종류:", currentVaccine); if (newVaccine === null) return;
+        localStorage.setItem(`${id}_group_count`, parseInt(newCount) || 0);
+        localStorage.setItem(`${id}_group_date`, newDate);
+        localStorage.setItem(`${id}_group_vaccine`, newVaccine);
+        openBuilding(id); initMap();
+    }
     function batchSetRoom(id, r, per) {
         const total = prompt(`${r}번 방 전체 마릿수:`);
         const d = prompt(`입식 날짜:`, today.toISOString().split('T')[0]);
